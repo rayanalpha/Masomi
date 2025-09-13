@@ -1,0 +1,214 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  MANAGER
+  CUSTOMER
+}
+
+enum ProductStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+enum ProductVisibility {
+  PUBLIC
+  PRIVATE
+}
+
+enum OrderStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  CANCELLED
+  REFUNDED
+}
+
+enum CouponType {
+  PERCENT
+  FIXED
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  name         String?
+  role         Role     @default(MANAGER)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  orders       Order[]
+}
+
+model Category {
+  id          String     @id @default(cuid())
+  name        String
+  slug        String     @unique
+  description String?
+  parentId    String?
+  parent      Category?  @relation("CategoryChildren", fields: [parentId], references: [id])
+  children    Category[] @relation("CategoryChildren")
+  products    Product[]
+
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+}
+
+model Attribute {
+  id                String            @id @default(cuid())
+  name              String
+  slug              String            @unique
+  values            AttributeValue[]
+  productAttributes ProductAttribute[]
+  variationOptions  VariationOption[]
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+}
+
+model AttributeValue {
+  id                String           @id @default(cuid())
+  attribute         Attribute        @relation(fields: [attributeId], references: [id], onDelete: Cascade)
+  attributeId       String
+  value             String
+  slug              String
+  productAttrValues ProductAttrValue[]
+  variationOptions  VariationOption[]
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+
+  @@unique([attributeId, slug])
+}
+
+model Product {
+  id           String             @id @default(cuid())
+  name         String
+  slug         String             @unique
+  description  String?
+  status       ProductStatus      @default(DRAFT)
+  visibility   ProductVisibility  @default(PUBLIC)
+  sku          String?            @unique
+  price        Float?
+  salePrice    Float?
+  stock        Int?               @default(0)
+  images       ProductImage[]
+  categories   Category[]
+  attributes   ProductAttribute[]
+  attrValues   ProductAttrValue[]
+  variations   Variation[]
+  orderItems   OrderItem[]
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
+}
+
+model ProductImage {
+  id        String   @id @default(cuid())
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  productId String
+  url       String
+  alt       String?
+  sort      Int       @default(0)
+}
+
+model ProductAttribute {
+  id               String    @id @default(cuid())
+  product          Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
+  productId        String
+  attribute        Attribute @relation(fields: [attributeId], references: [id], onDelete: Cascade)
+  attributeId      String
+  useForVariations Boolean   @default(false)
+
+  @@unique([productId, attributeId])
+}
+
+model ProductAttrValue {
+  id               String         @id @default(cuid())
+  product          Product        @relation(fields: [productId], references: [id], onDelete: Cascade)
+  productId        String
+  attributeValue   AttributeValue @relation(fields: [attributeValueId], references: [id], onDelete: Cascade)
+  attributeValueId String
+
+  @@unique([productId, attributeValueId])
+}
+
+model Variation {
+  id         String    @id @default(cuid())
+  product    Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
+  productId  String
+  sku        String?   @unique
+  price      Float?
+  salePrice  Float?
+  stock      Int       @default(0)
+  status     Boolean   @default(true)
+  options    VariationOption[]
+  orderItems OrderItem[]
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+}
+
+model VariationOption {
+  id              String         @id @default(cuid())
+  variation       Variation      @relation(fields: [variationId], references: [id], onDelete: Cascade)
+  variationId     String
+  attribute       Attribute      @relation(fields: [attributeId], references: [id], onDelete: Cascade)
+  attributeId     String
+  attributeValue  AttributeValue @relation(fields: [attributeValueId], references: [id], onDelete: Cascade)
+  attributeValueId String
+
+  @@unique([variationId, attributeId])
+}
+
+model Order {
+  id           String      @id @default(cuid())
+  number       String      @unique
+  user         User?       @relation(fields: [userId], references: [id])
+  userId       String?
+  customerName String
+  customerEmail String
+  status       OrderStatus @default(PENDING)
+  subtotal     Float
+  discount     Float     @default(0)
+  shipping     Float     @default(0)
+  tax          Float     @default(0)
+  total        Float
+  items        OrderItem[]
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+}
+
+model OrderItem {
+  id          String    @id @default(cuid())
+  order       Order     @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  orderId     String
+  product     Product   @relation(fields: [productId], references: [id])
+  productId   String
+  variation   Variation? @relation(fields: [variationId], references: [id])
+  variationId String?
+  quantity    Int       @default(1)
+  unitPrice   Float
+  total       Float
+}
+
+model Coupon {
+  id         String     @id @default(cuid())
+  code       String     @unique
+  type       CouponType
+  amount     Float
+  minSubtotal Float?
+  maxUses    Int?
+  usedCount  Int        @default(0)
+  startsAt   DateTime?
+  endsAt     DateTime?
+  active     Boolean    @default(true)
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
+}
+
