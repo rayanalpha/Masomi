@@ -51,26 +51,32 @@ export default async function Home() {
           </div>
           {/* Product rail: 10 random items, looping */}
           {await (async () => {
-            const products = await prisma.product.findMany({
-              where: { status: "PUBLISHED", visibility: "PUBLIC" },
-              include: { images: { orderBy: [{ sort: "asc" }, { id: "asc" }] } },
-              take: 100,
-              orderBy: { createdAt: "desc" },
-            });
-            const pool = products
-              .filter((p) => p.images.length)
-              .map((p) => ({
-                slug: p.slug,
-                name: p.name,
-                image: p.images[0].url.startsWith("/uploads/") ? p.images[0].url.replace("/uploads/", "/uploads/_thumbs/") : p.images[0].url,
-              }));
-            // Shuffle and take 10
-            for (let i = pool.length - 1; i > 0; i--) {
-              const j = Math.floor(Math.random() * (i + 1));
-              [pool[i], pool[j]] = [pool[j], pool[i]];
+            try {
+              const products = await prisma.product.findMany({
+                where: { status: "PUBLISHED", visibility: "PUBLIC" },
+                include: { images: { orderBy: [{ sort: "asc" }, { id: "asc" }] } },
+                take: 100,
+                orderBy: { createdAt: "desc" },
+              });
+              const pool = products
+                .filter((p) => p.images.length)
+                .map((p) => ({
+                  slug: p.slug,
+                  name: p.name,
+                  image: p.images[0].url.startsWith("/uploads/") ? p.images[0].url.replace("/uploads/", "/uploads/_thumbs/") : p.images[0].url,
+                }));
+              // Shuffle and take 10
+              for (let i = pool.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [pool[i], pool[j]] = [pool[j], pool[i]];
+              }
+              const sample = pool.slice(0, 10);
+              if (!sample.length) return null;
+              return <ProductRail items={sample} />;
+            } catch (e) {
+              console.error("HOME_RAIL_DB_ERROR", e);
+              return null;
             }
-            const sample = pool.slice(0, 10);
-            return <ProductRail items={sample} />;
           })()}
         </div>
       </section>
