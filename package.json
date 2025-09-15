@@ -11,7 +11,7 @@
     "db:migrate": "prisma migrate dev --name init",
     "db:push": "prisma db push",
     "db:seed": "prisma db seed",
-    "netlify:build": "prisma generate && prisma db push && node prisma/seed.js && next build",
+    "netlify:build": "prisma generate && next build",
     "cleanup:demos": "node scripts/remove-demo-products.js",
     "postinstall": "prisma generate"
   },
