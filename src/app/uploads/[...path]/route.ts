@@ -36,7 +36,7 @@ export async function GET(_req: Request, ctx: { params: Promise<{ path: string[]
     try {
       const data = await fs.readFile(filePath);
       const ct = guessContentType(key);
-      const blob = new Blob([data], { type: ct });
+      const blob = new Blob([new Uint8Array(data)], { type: ct });
       return new NextResponse(blob, { headers: { "content-type": ct, "cache-control": "public, max-age=60" } });
     } catch {
       return new NextResponse("Not found", { status: 404 });
