@@ -1,0 +1,17 @@
+[build]
+  command = "npm run netlify:build"
+  publish = ".next"
+
+# Ensure Next.js runtime is used for SSR, API routes, and Images
+[[plugins]]
+  package = "@netlify/plugin-nextjs"
+
+[functions]
+  node_bundler = "esbuild"
+  # Sharp, Prisma, and Supabase SDK available in Netlify Functions
+  external_node_modules = ["sharp", "@prisma/client", "@supabase/supabase-js"]
+
+[build.environment]
+  NODE_VERSION = "20"
+  # Disable Next telemetry on CI
+  NEXT_TELEMETRY_DISABLED = "1"
