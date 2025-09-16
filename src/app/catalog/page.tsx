@@ -7,7 +7,7 @@ export default async function CatalogPage({ searchParams }: { searchParams?: Pro
   const params = (await searchParams) ?? {};
   const category = params.category;
   
-  let products = [];
+  let products: Awaited<ReturnType<typeof prisma.product.findMany<{ include: { images: true, categories: true } }>>> = [];
   try {
     const where = {
       status: "PUBLISHED" as const,
