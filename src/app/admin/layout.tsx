@@ -16,8 +16,15 @@ function MobileAdminNavMount() {
 }
 
 export default async function AdminLayout({ children }: { children: ReactNode }) {
-  const session = await getServerSession(authOptions);
-  const role = (session?.user as any)?.role as string | undefined;
+  let session;
+  let role;
+  try {
+    session = await getServerSession(authOptions);
+    role = (session?.user as any)?.role as string | undefined;
+  } catch (e) {
+    console.error("ADMIN_LAYOUT_SESSION_ERROR", e);
+    redirect("/login");
+  }
   if (!session || !role || (role !== "ADMIN" && role !== "MANAGER")) {
     redirect("/login");
   }
