@@ -3,11 +3,20 @@ import prisma from "@/lib/prisma";
 export const dynamic = "force-dynamic";
 
 export default async function AdminDashboard() {
-  const [productCount, categoryCount, orderCount] = await Promise.all([
-    prisma.product.count(),
-    prisma.category.count(),
-    prisma.order.count(),
-  ]);
+  let productCount = 0;
+  let categoryCount = 0;
+  let orderCount = 0;
+
+  try {
+    [productCount, categoryCount, orderCount] = await Promise.all([
+      prisma.product.count(),
+      prisma.category.count(),
+      prisma.order.count(),
+    ]);
+  } catch (e) {
+    console.error("ADMIN_DASHBOARD_DB_ERROR", e);
+    // Continue with zeros if DB fails
+  }
 
   return (
     <div className="space-y-6">

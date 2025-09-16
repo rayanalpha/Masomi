@@ -21,11 +21,21 @@ export default async function AdminLayout({ children }: { children: ReactNode })
   try {
     session = await getServerSession(authOptions);
     role = (session?.user as any)?.role as string | undefined;
+    
+    console.log("ADMIN_LAYOUT_DEBUG", {
+      hasSession: !!session,
+      userEmail: session?.user?.email,
+      role: role,
+      shouldAllow: !!(session && role && (role === "ADMIN" || role === "MANAGER"))
+    });
+    
   } catch (e) {
     console.error("ADMIN_LAYOUT_SESSION_ERROR", e);
     redirect("/login");
   }
+  
   if (!session || !role || (role !== "ADMIN" && role !== "MANAGER")) {
+    console.log("ADMIN_LAYOUT_REDIRECT", { hasSession: !!session, role });
     redirect("/login");
   }
 
