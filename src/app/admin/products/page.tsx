@@ -4,7 +4,7 @@ import prisma from "@/lib/prisma";
 export const dynamic = "force-dynamic";
 
 export default async function ProductsPage() {
-  let products = [];
+  let products: Awaited<ReturnType<typeof prisma.product.findMany<{ include: { categories: true } }>>> = [];
   try {
     products = await prisma.product.findMany({
       orderBy: { createdAt: "desc" },
