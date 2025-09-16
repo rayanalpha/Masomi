@@ -4,11 +4,17 @@ import prisma from "@/lib/prisma";
 export const dynamic = "force-dynamic";
 
 export default async function ProductsPage() {
-  const products = await prisma.product.findMany({
-    orderBy: { createdAt: "desc" },
-    take: 50,
-    include: { categories: true },
-  });
+  let products = [];
+  try {
+    products = await prisma.product.findMany({
+      orderBy: { createdAt: "desc" },
+      take: 50,
+      include: { categories: true },
+    });
+  } catch (e) {
+    console.error("ADMIN_PRODUCTS_DB_ERROR", e);
+    // Continue with empty array if DB fails
+  }
 
   return (
     <div className="space-y-6">
