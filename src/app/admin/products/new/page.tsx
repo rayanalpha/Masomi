@@ -178,6 +178,17 @@ export default function NewProductPage() {
     }
   }
 
+  async function checkEnvironment() {
+    try {
+      addLog('Checking environment variables...');
+      const res = await fetch('/api/debug/env');
+      const data = await res.json();
+      addLog(`Environment check: ${JSON.stringify(data.environment, null, 2)}`);
+    } catch (error) {
+      addLog(`Environment check failed: ${error}`);
+    }
+  }
+
   return (
     <div className="space-y-6">
       <h1 className="text-2xl font-bold">محصول جدید</h1>
@@ -278,6 +289,9 @@ export default function NewProductPage() {
             </button>
             <button type="button" onClick={testNetworkConnectivity} className="text-xs bg-purple-600 px-2 py-1 rounded">
               تست شبکه
+            </button>
+            <button type="button" onClick={checkEnvironment} className="text-xs bg-orange-600 px-2 py-1 rounded">
+              بررسی محیط
             </button>
             <button type="button" onClick={() => setDebugLog([])} className="text-xs bg-gray-600 px-2 py-1 rounded">
               پاک کردن لاگ

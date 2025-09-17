@@ -78,12 +78,28 @@ export async function POST(request: Request) {
   const data = parsed.data;
   console.log('Validated data:', data);
 
-  // Optionally connect category
+  // Optionally connect category with retry
   let categoriesConnect: { id: string }[] = [];
   if (data.categorySlug) {
     console.log('Looking for category with slug:', data.categorySlug);
-    const cat = await prisma.category.findUnique({ where: { slug: data.categorySlug } });
-    console.log('Found category:', cat);
+    
+    let cat = null;
+    let retries = 3;
+    while (retries > 0) {
+      try {
+        cat = await prisma.category.findUnique({ where: { slug: data.categorySlug } });
+        console.log('Found category:', cat);
+        break;
+      } catch (error: any) {
+        console.log(`Category lookup failed (${retries} retries left):`, error.message);
+        retries--;
+        if (retries === 0) throw error;
+        
+        // Wait before retry
+        await new Promise(resolve => setTimeout(resolve, 100));
+      }
+    }
+    
     if (cat) categoriesConnect = [{ id: cat.id }];
   }
 
@@ -102,9 +118,24 @@ export async function POST(request: Request) {
   
   console.log('Creating product with data:', createData);
   
-  const created = await prisma.product.create({ data: createData });
+  // Create product with retry
+  let created = null;
+  let retries = 3;
+  while (retries > 0) {
+    try {
+      created = await prisma.product.create({ data: createData });
+      console.log('Product created successfully:', created.id);
+      break;
+    } catch (error: any) {
+      console.log(`Product creation failed (${retries} retries left):`, error.message);
+      retries--;
+      if (retries === 0) throw error;
+      
+      // Wait before retry
+      await new Promise(resolve => setTimeout(resolve, 200));
+    }
+  }
   
-  console.log('Product created successfully:', created.id);
   return NextResponse.json(created, { status: 201 });
   } catch (error) {
     console.error('Error in POST /api/products:', error);
