@@ -13,10 +13,10 @@ export async function GET(request: NextRequest) {
       timestamp: new Date().toISOString(),
       hasSession: !!session,
       user: session?.user ? {
-        id: (session.user as any).id,
+        id: session.user.id,
         email: session.user.email,
         name: session.user.name,
-        role: (session.user as any).role
+        role: session.user.role
       } : null,
       cookies: {
         all: request.headers.get('cookie') || 'No cookies found',
