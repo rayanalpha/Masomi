@@ -48,42 +48,70 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
-  const session = await getServerSession(authOptions);
+  try {
+    console.log('POST /api/products called');
+    
+    const session = await getServerSession(authOptions);
+  console.log('Session in products API:', {
+    hasSession: !!session,
+    user: session?.user ? {
+      email: session.user.email,
+      role: (session.user as any).role
+    } : null
+  });
+  
   const role = (session?.user as any)?.role as string | undefined;
   if (!session || !role || (role !== "ADMIN" && role !== "MANAGER")) {
+    console.log('Authorization failed:', { hasSession: !!session, role });
     return new NextResponse("Unauthorized", { status: 401 });
   }
 
   const body = await request.json();
+  console.log('Request body:', body);
+  
   const parsed = productCreateSchema.safeParse(body);
   if (!parsed.success) {
+    console.log('Validation failed:', parsed.error);
     return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
   }
 
   const data = parsed.data;
+  console.log('Validated data:', data);
 
   // Optionally connect category
   let categoriesConnect: { id: string }[] = [];
   if (data.categorySlug) {
+    console.log('Looking for category with slug:', data.categorySlug);
     const cat = await prisma.category.findUnique({ where: { slug: data.categorySlug } });
+    console.log('Found category:', cat);
     if (cat) categoriesConnect = [{ id: cat.id }];
   }
 
-  const created = await prisma.product.create({
-    data: {
-      name: data.name,
-      slug: data.slug,
-      description: data.description,
-      price: data.price,
-      sku: data.sku,
-      status: data.status ?? "DRAFT",
-      visibility: data.visibility ?? "PUBLIC",
-      stock: typeof data.stock === "number" ? data.stock : undefined,
-      categories: categoriesConnect.length ? { connect: categoriesConnect } : undefined,
-      images: data.imageUrl ? { create: [{ url: data.imageUrl, alt: data.name }] } : undefined,
-    },
-  });
-
+  const createData = {
+    name: data.name,
+    slug: data.slug,
+    description: data.description,
+    price: data.price,
+    sku: data.sku,
+    status: data.status ?? "DRAFT",
+    visibility: data.visibility ?? "PUBLIC",
+    stock: typeof data.stock === "number" ? data.stock : undefined,
+    categories: categoriesConnect.length ? { connect: categoriesConnect } : undefined,
+    images: data.imageUrl ? { create: [{ url: data.imageUrl, alt: data.name }] } : undefined,
+  };
+  
+  console.log('Creating product with data:', createData);
+  
+  const created = await prisma.product.create({ data: createData });
+  
+  console.log('Product created successfully:', created.id);
   return NextResponse.json(created, { status: 201 });
+  } catch (error) {
+    console.error('Error in POST /api/products:', error);
+    return NextResponse.json({ 
+      error: 'Server error', 
+      details: error instanceof Error ? error.message : 'Unknown error' 
+    }, { status: 500 });
+  }
 }
 
