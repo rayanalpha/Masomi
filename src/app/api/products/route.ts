@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/server/auth";
-import prisma from "@/lib/prisma";
+import { withDatabase, withRetry } from "@/lib/db-serverless";
 import { z } from "zod";
 
 const productCreateSchema = z.object({
@@ -33,110 +33,103 @@ export async function GET(request: Request) {
       }
     : {};
 
-  const [items, total] = await Promise.all([
-    prisma.product.findMany({
-      where,
-      orderBy: { createdAt: "desc" },
-      take: perPage,
-      skip: (page - 1) * perPage,
-      include: { categories: true, images: true },
-    }),
-    prisma.product.count({ where }),
-  ]);
-
-  return NextResponse.json({ items, page, perPage, total });
+  try {
+    const result = await withRetry(async () => {
+      return await withDatabase(async (prisma) => {
+        const [items, total] = await Promise.all([
+          prisma.product.findMany({
+            where,
+            orderBy: { createdAt: "desc" },
+            take: perPage,
+            skip: (page - 1) * perPage,
+            include: { categories: true, images: true },
+          }),
+          prisma.product.count({ where }),
+        ]);
+        
+        return { items, page, perPage, total };
+      });
+    });
+    
+    return NextResponse.json(result);
+  } catch (error) {
+    console.error('GET /api/products error:', error);
+    return NextResponse.json({
+      error: 'Failed to fetch products',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    }, { status: 500 });
+  }
 }
 
 export async function POST(request: Request) {
   try {
     console.log('POST /api/products called');
     
+    // Check session first (outside of database operations)
     const session = await getServerSession(authOptions);
-  console.log('Session in products API:', {
-    hasSession: !!session,
-    user: session?.user ? {
-      email: session.user.email,
-      role: (session.user as any).role
-    } : null
-  });
-  
-  const role = (session?.user as any)?.role as string | undefined;
-  if (!session || !role || (role !== "ADMIN" && role !== "MANAGER")) {
-    console.log('Authorization failed:', { hasSession: !!session, role });
-    return new NextResponse("Unauthorized", { status: 401 });
-  }
-
-  const body = await request.json();
-  console.log('Request body:', body);
-  
-  const parsed = productCreateSchema.safeParse(body);
-  if (!parsed.success) {
-    console.log('Validation failed:', parsed.error);
-    return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
-  }
-
-  const data = parsed.data;
-  console.log('Validated data:', data);
-
-  // Optionally connect category with retry
-  let categoriesConnect: { id: string }[] = [];
-  if (data.categorySlug) {
-    console.log('Looking for category with slug:', data.categorySlug);
+    console.log('Session in products API:', {
+      hasSession: !!session,
+      user: session?.user ? {
+        email: session.user.email,
+        role: (session.user as any).role
+      } : null
+    });
     
-    let cat = null;
-    let retries = 3;
-    while (retries > 0) {
-      try {
-        cat = await prisma.category.findUnique({ where: { slug: data.categorySlug } });
-        console.log('Found category:', cat);
-        break;
-      } catch (error: any) {
-        console.log(`Category lookup failed (${retries} retries left):`, error.message);
-        retries--;
-        if (retries === 0) throw error;
+    const role = (session?.user as any)?.role as string | undefined;
+    if (!session || !role || (role !== "ADMIN" && role !== "MANAGER")) {
+      console.log('Authorization failed:', { hasSession: !!session, role });
+      return new NextResponse("Unauthorized", { status: 401 });
+    }
+
+    const body = await request.json();
+    console.log('Request body:', body);
+    
+    const parsed = productCreateSchema.safeParse(body);
+    if (!parsed.success) {
+      console.log('Validation failed:', parsed.error);
+      return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
+    }
+
+    const data = parsed.data;
+    console.log('Validated data:', data);
+
+    // Use serverless database operations
+    const result = await withRetry(async () => {
+      return await withDatabase(async (prisma) => {
+        // Find category if specified
+        let categoriesConnect: { id: string }[] = [];
+        if (data.categorySlug) {
+          console.log('Looking for category with slug:', data.categorySlug);
+          const cat = await prisma.category.findUnique({ 
+            where: { slug: data.categorySlug } 
+          });
+          console.log('Found category:', cat);
+          if (cat) categoriesConnect = [{ id: cat.id }];
+        }
+
+        const createData = {
+          name: data.name,
+          slug: data.slug,
+          description: data.description,
+          price: data.price,
+          sku: data.sku,
+          status: data.status ?? "DRAFT",
+          visibility: data.visibility ?? "PUBLIC",
+          stock: typeof data.stock === "number" ? data.stock : undefined,
+          categories: categoriesConnect.length ? { connect: categoriesConnect } : undefined,
+          images: data.imageUrl ? { create: [{ url: data.imageUrl, alt: data.name }] } : undefined,
+        };
         
-        // Wait before retry
-        await new Promise(resolve => setTimeout(resolve, 100));
-      }
-    }
+        console.log('Creating product with data:', createData);
+        
+        const created = await prisma.product.create({ data: createData });
+        console.log('Product created successfully:', created.id);
+        
+        return created;
+      });
+    }, 3, 200);
     
-    if (cat) categoriesConnect = [{ id: cat.id }];
-  }
-
-  const createData = {
-    name: data.name,
-    slug: data.slug,
-    description: data.description,
-    price: data.price,
-    sku: data.sku,
-    status: data.status ?? "DRAFT",
-    visibility: data.visibility ?? "PUBLIC",
-    stock: typeof data.stock === "number" ? data.stock : undefined,
-    categories: categoriesConnect.length ? { connect: categoriesConnect } : undefined,
-    images: data.imageUrl ? { create: [{ url: data.imageUrl, alt: data.name }] } : undefined,
-  };
-  
-  console.log('Creating product with data:', createData);
-  
-  // Create product with retry
-  let created = null;
-  let retries = 3;
-  while (retries > 0) {
-    try {
-      created = await prisma.product.create({ data: createData });
-      console.log('Product created successfully:', created.id);
-      break;
-    } catch (error: any) {
-      console.log(`Product creation failed (${retries} retries left):`, error.message);
-      retries--;
-      if (retries === 0) throw error;
-      
-      // Wait before retry
-      await new Promise(resolve => setTimeout(resolve, 200));
-    }
-  }
-  
-  return NextResponse.json(created, { status: 201 });
+    return NextResponse.json(result, { status: 201 });
   } catch (error) {
     console.error('Error in POST /api/products:', error);
     return NextResponse.json({ 
