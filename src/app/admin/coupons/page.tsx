@@ -1,4 +1,4 @@
-import prisma from "@/lib/prisma";
+import { withDatabaseRetry } from "@/lib/db-serverless";
 import Link from "next/link";
 
 export default async function CouponsPage() {

@@ -1,6 +1,7 @@
-import prisma from "@/lib/prisma";
+import { withDatabaseRetry } from "@/lib/db-serverless";
 
 export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 export default async function AdminDashboard() {
   let productCount = 0;
@@ -8,11 +9,19 @@ export default async function AdminDashboard() {
   let orderCount = 0;
 
   try {
-    [productCount, categoryCount, orderCount] = await Promise.all([
-      prisma.product.count(),
-      prisma.category.count(),
-      prisma.order.count(),
-    ]);
+    // Use serverless-safe database operations
+    const counts = await withDatabaseRetry(async (prisma) => {
+      const [products, categories, orders] = await Promise.all([
+        prisma.product.count(),
+        prisma.category.count(),
+        prisma.order.count(),
+      ]);
+      return { products, categories, orders };
+    }, 3, 500);
+    
+    productCount = counts.products;
+    categoryCount = counts.categories;
+    orderCount = counts.orders;
   } catch (e) {
     console.error("ADMIN_DASHBOARD_DB_ERROR", e);
     // Continue with zeros if DB fails

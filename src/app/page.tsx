@@ -1,8 +1,10 @@
 import Link from "next/link";
-import prisma from "@/lib/prisma";
+import { fetchProducts } from "@/lib/server-data";
 import ProductRail from "@/components/home/ProductRail";
 
+// Disable caching for serverless
 export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 export default async function Home() {
   return (
@@ -52,12 +54,13 @@ export default async function Home() {
           {/* Product rail: 10 random items, looping */}
           {await (async () => {
             try {
-              const products = await prisma.product.findMany({
-                where: { status: "PUBLISHED", visibility: "PUBLIC" },
-                include: { images: { orderBy: [{ sort: "asc" }, { id: "asc" }] } },
-                take: 100,
-                orderBy: { createdAt: "desc" },
+              // Use serverless-safe data fetching
+              const products = await fetchProducts({
+                status: 'PUBLISHED',
+                visibility: 'PUBLIC',
+                take: 100
               });
+              
               const pool = products
                 .filter((p) => p.images.length)
                 .map((p) => ({

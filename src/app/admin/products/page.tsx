@@ -1,16 +1,28 @@
 import Link from "next/link";
-import prisma from "@/lib/prisma";
+import { withDatabaseRetry } from "@/lib/db-serverless";
 
 export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 export default async function ProductsPage() {
-  let products: Awaited<ReturnType<typeof prisma.product.findMany<{ include: { categories: true } }>>> = [];
+  let products: Array<{
+    id: string;
+    name: string;
+    slug: string;
+    status: string;
+    price: number | null;
+    categories: Array<{ id: string; name: string }>;
+  }> = [];
+  
   try {
-    products = await prisma.product.findMany({
-      orderBy: { createdAt: "desc" },
-      take: 50,
-      include: { categories: true },
-    });
+    // Use serverless-safe database operations
+    products = await withDatabaseRetry(async (prisma) => {
+      return await prisma.product.findMany({
+        orderBy: { createdAt: "desc" },
+        take: 50,
+        include: { categories: true },
+      });
+    }, 3, 500);
   } catch (e) {
     console.error("ADMIN_PRODUCTS_DB_ERROR", e);
     // Continue with empty array if DB fails

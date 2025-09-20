@@ -1,5 +1,5 @@
 import Link from "next/link";
-import prisma from "@/lib/prisma";
+import { withDatabaseRetry } from "@/lib/db-serverless";
 
 export default async function CategoriesPage() {
   const cats = await prisma.category.findMany({ orderBy: [{ parentId: "asc" }, { name: "asc" }] });

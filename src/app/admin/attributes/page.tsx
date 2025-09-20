@@ -1,5 +1,5 @@
 import Link from "next/link";
-import prisma from "@/lib/prisma";
+import { withDatabaseRetry } from "@/lib/db-serverless";
 
 export default async function AttributesPage() {
   const attrs = await prisma.attribute.findMany({ include: { _count: { select: { values: true } } }, orderBy: { name: "asc" } });
