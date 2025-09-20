@@ -1,5 +1,5 @@
 [build]
-  command = "npm install && npm run netlify:build"
+  command = "npm run netlify:build"
   publish = ".next"
 
 # Ensure Next.js runtime is used for SSR, API routes, and Images
