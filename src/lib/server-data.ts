@@ -102,18 +102,15 @@ export async function fetchProductBySlug(slug: string): Promise<ProductWithRelat
           categories: true,
           attributes: {
             include: {
-              attributeValues: {
-                include: {
-                  attribute: true
-                }
-              }
+              attribute: true
             }
           },
           variations: {
             include: {
-              attributeValues: {
+              options: {
                 include: {
-                  attribute: true
+                  attribute: true,
+                  attributeValue: true
                 }
               }
             }

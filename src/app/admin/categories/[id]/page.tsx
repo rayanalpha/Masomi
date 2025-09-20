@@ -1,9 +1,14 @@
-import prisma from "@/lib/prisma";
+import { withDatabaseRetry } from "@/lib/db-serverless";
 import Link from "next/link";
+
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 export default async function EditCategoryPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const category = await prisma.category.findUnique({ where: { id } });
+  const category = await withDatabaseRetry(async (prisma) => {
+    return await prisma.category.findUnique({ where: { id } });
+  });
   if (!category) {
     return (
       <div className="space-y-4">
