@@ -1,8 +1,15 @@
-﻿import Link from "next/link";
-`nexport const dynamic = "force-dynamic";`nexport const revalidate = 0;`nimport { withDatabaseRetry } from "@/lib/db-serverless";
-`nexport const dynamic = "force-dynamic";`nexport const revalidate = 0;`n
+import Link from "next/link";
+import { withDatabaseRetry } from "@/lib/db-serverless";
+
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 export default async function CategoriesPage() {
-  const cats = await withDatabaseRetry(async (prisma) => await prisma.category.findMany({ orderBy: [{ parentId: "asc" }, { name: "asc" }] }));
+  const cats = await withDatabaseRetry(async (prisma) => {
+    return await prisma.category.findMany({ 
+      orderBy: [{ parentId: "asc" }, { name: "asc" }] 
+    });
+  });
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">

@@ -1,8 +1,16 @@
-﻿import { withDatabaseRetry } from "@/lib/db-serverless";
-`nexport const dynamic = "force-dynamic";`nexport const revalidate = 0;`nimport Link from "next/link";
-`nexport const dynamic = "force-dynamic";`nexport const revalidate = 0;`n
+import Link from "next/link";
+import { withDatabaseRetry } from "@/lib/db-serverless";
+
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 export default async function CouponsPage() {
-  const coupons = await withDatabaseRetry(async (prisma) => await prisma.coupon.findMany({ orderBy: { createdAt: "desc" }, take: 100 }));
+  const coupons = await withDatabaseRetry(async (prisma) => {
+    return await prisma.coupon.findMany({ 
+      orderBy: { createdAt: "desc" }, 
+      take: 100 
+    });
+  });
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
