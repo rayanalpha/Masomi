@@ -3,11 +3,9 @@ generator client {
   binaryTargets = ["native", "debian-openssl-3.0.x"]
 }
 datasource db {
-  provider = "postgresql"
-url      = env("DATABASE_URL")
-  // Add a connection timeout to the database URL to prevent indefinite waiting
-  // This can be helpful if the database is temporarily unavailable or slow to respond
-  // For example: `postgresql://user:password@localhost:5432/mydb?connect_timeout=10`
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DATABASE_URL_DIRECT")
 }
 
 enum Role {

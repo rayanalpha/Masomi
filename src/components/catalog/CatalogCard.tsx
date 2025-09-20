@@ -6,7 +6,7 @@ import TiltCard from "@/components/ui/TiltCard";
 
 export default function CatalogCard({ p }: { p: { id: string; slug: string; name: string; images: { url: string; alt: string | null }[]; categories: { name: string }[] } }) {
   const img = p.images[0]?.url ?? "/file.svg";
-  const thumb = img.startsWith("/uploads/") ? img.replace("/uploads/", "/uploads/_thumbs/") : img;
+  const thumb = img.startsWith("/uploads/") ? img.replace("/uploads/", "/uploads/_thumbs/").replace(/\.[^.]+$/, ".jpg") : img;
   const cats = p.categories.map((c) => c.name);
 
   return (

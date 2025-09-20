@@ -68,7 +68,9 @@ export default function ClientReorderGallery({ productId, images: initial }: { p
       <div className="mb-2 text-sm font-medium">مرتب‌سازی (درگ و دراپ) و انتخاب تصویر شاخص</div>
       <div className="flex flex-wrap gap-3">
         {items.map((img) => {
-          const thumb = img.url.replace("/uploads/", "/uploads/_thumbs/");
+          const thumb = img.url.startsWith("/uploads/")
+            ? img.url.replace("/uploads/", "/uploads/_thumbs/").replace(/\.[^.]+$/, ".jpg")
+            : img.url;
           return (
             <figure
               key={img.id}

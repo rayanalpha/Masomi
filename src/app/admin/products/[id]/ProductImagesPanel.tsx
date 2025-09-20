@@ -11,7 +11,9 @@ export default async function ProductImagesPanel({ productId }: { productId: str
       <h2 className="font-semibold">تصاویر محصول</h2>
       <div className="flex flex-wrap gap-3">
         {images.map((img) => {
-          const thumb = img.url.replace("/uploads/", "/uploads/_thumbs/");
+          const thumb = img.url.startsWith("/uploads/")
+            ? img.url.replace("/uploads/", "/uploads/_thumbs/").replace(/\.[^.]+$/, ".jpg")
+            : img.url;
           return (
             <figure key={img.id} className="w-32">
               {/* eslint-disable-next-line @next/next/no-img-element */}

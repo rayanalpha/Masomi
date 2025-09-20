@@ -1,70 +1,183 @@
 import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/server/auth";
+import { withApiHandler, requireAuth, rateLimit, ApiHandlerContext } from '@/lib/api-middleware';
 import { saveImage } from "@/lib/storage";
+import { logger } from '@/lib/logger';
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-const ALLOWED = new Set(["image/png", "image/jpeg", "image/webp", "image/avif"]);
+const ALLOWED_TYPES = new Set(["image/png", "image/jpeg", "image/jpg", "image/webp", "image/avif"]);
+const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 
-export async function POST(req: Request) {
-  try {
-    console.log('POST /api/upload called');
-    
-    // Check session
-    const session = await getServerSession(authOptions);
-    console.log('Session in upload API:', {
-      hasSession: !!session,
-      user: session?.user ? {
-        email: session.user.email,
-        role: (session.user as any).role
-      } : null
-    });
-    
-    const role = (session?.user as any)?.role as string | undefined;
-    if (!session || !role || (role !== "ADMIN" && role !== "MANAGER")) {
-      console.log('Upload authorization failed:', { hasSession: !!session, role });
-      return new NextResponse("Unauthorized", { status: 401 });
-    }
-  
-    const contentType = req.headers.get("content-type") || "";
-    if (!contentType.includes("multipart/form-data")) {
-      return new NextResponse("Unsupported Media Type", { status: 415 });
-    }
+export const POST = withApiHandler(
+  requireAuth(['ADMIN', 'MANAGER'])(
+    rateLimit(10, 60000)( // 10 uploads per minute
+      async (context: ApiHandlerContext) => {
+        logger.info('Upload request started', context.context);
+        
+        const contentType = context.request.headers.get("content-type") || "";
+        if (!contentType.includes("multipart/form-data")) {
+          logger.warn('Invalid content type for upload', { 
+            ...context.context, 
+            contentType 
+          });
+          
+          const { ApiException } = await import('@/lib/api-middleware');
+          throw new ApiException(
+            'Content-Type must be multipart/form-data',
+            415,
+            'INVALID_CONTENT_TYPE'
+          );
+        }
 
-    const form = await req.formData();
-    const file = form.get("file");
-    console.log('File from form:', { 
-      hasFile: !!file, 
-      fileName: file instanceof File ? file.name : 'not file',
-      fileType: file instanceof File ? file.type : 'not file'
-    });
-    
-    if (!(file instanceof File)) return new NextResponse("No file", { status: 400 });
+        logger.debug('Parsing form data', context.context);
+        const form = await context.request.formData();
+        const file = form.get("file");
+        
+        const fileInfo = {
+          hasFile: !!file,
+          fileName: file instanceof File ? file.name : 'not file',
+          fileType: file instanceof File ? file.type : 'not file',
+          fileSize: file instanceof File ? file.size : 'not file'
+        };
+        
+        logger.debug('Form data parsed', { ...context.context, fileInfo });
+        
+        if (!(file instanceof File)) {
+          logger.warn('No valid file found in form data', context.context);
+          
+          const { ApiException } = await import('@/lib/api-middleware');
+          throw new ApiException(
+            'No file provided or invalid file format',
+            400,
+            'NO_FILE_PROVIDED'
+          );
+        }
 
-    if (!ALLOWED.has(file.type)) {
-      console.log('Invalid file type:', file.type);
-      return new NextResponse("Invalid mime", { status: 400 });
-    }
+        // Enhanced validation with detailed logging
+        if (!ALLOWED_TYPES.has(file.type)) {
+          logger.warn('Invalid file type uploaded', {
+            ...context.context,
+            fileType: file.type,
+            allowedTypes: Array.from(ALLOWED_TYPES)
+          });
+          
+          const { ApiException } = await import('@/lib/api-middleware');
+          throw new ApiException(
+            `Invalid file type: ${file.type}. Allowed types: ${Array.from(ALLOWED_TYPES).join(', ')}`,
+            400,
+            'INVALID_FILE_TYPE',
+            { fileType: file.type, allowedTypes: Array.from(ALLOWED_TYPES) }
+          );
+        }
+        
+        if (file.size > MAX_FILE_SIZE) {
+          logger.warn('File size exceeds limit', {
+            ...context.context,
+            fileSize: file.size,
+            maxSize: MAX_FILE_SIZE
+          });
+          
+          const { ApiException } = await import('@/lib/api-middleware');
+          throw new ApiException(
+            `File too large: ${(file.size / 1024 / 1024).toFixed(2)}MB. Maximum size: ${MAX_FILE_SIZE / 1024 / 1024}MB`,
+            400,
+            'FILE_TOO_LARGE',
+            { fileSize: file.size, maxSize: MAX_FILE_SIZE }
+          );
+        }
 
-    const base = (form.get("name")?.toString() || "upload").replace(/[^a-zA-Z0-9_-]/g, "_");
-    console.log('Base name for file:', base);
-    
-    const bytes = await file.arrayBuffer();
-    const buffer = Buffer.from(bytes);
-    console.log('File buffer size:', buffer.length);
+        const baseName = (form.get("name")?.toString() || file.name || "upload")
+          .replace(/\.[^/.]+$/, '') // Remove extension
+          .replace(/[^a-zA-Z0-9_-]/g, "_") // Sanitize
+          .substring(0, 50); // Limit length
+        
+        const processInfo = {
+          originalName: file.name,
+          sanitizedBaseName: baseName,
+          size: file.size,
+          type: file.type
+        };
+        
+        logger.info('Processing file upload', { ...context.context, processInfo });
+        
+        // Convert to buffer with error handling
+        logger.debug('Converting file to buffer', context.context);
+        const bytes = await file.arrayBuffer();
+        const buffer = Buffer.from(bytes);
+        
+        if (buffer.length === 0) {
+          logger.error('Empty file buffer created', context.context);
+          
+          const { ApiException } = await import('@/lib/api-middleware');
+          throw new ApiException(
+            'File appears to be empty',
+            400,
+            'EMPTY_FILE'
+          );
+        }
+        
+        logger.debug('File buffer created', { 
+          ...context.context, 
+          bufferSize: buffer.length 
+        });
 
-    const { url, thumbUrl } = await saveImage({ buffer, baseName: base, contentType: file.type });
-    console.log('File saved successfully:', { url, thumbUrl });
-    return NextResponse.json({ url, thumbUrl }, { status: 201 });
-    
-  } catch (error) {
-    console.error('Upload API error:', error);
-    return NextResponse.json({
-      error: 'Upload failed',
-      details: error instanceof Error ? error.message : 'Unknown error'
-    }, { status: 500 });
-  }
-}
+        // Save image with performance tracking
+        const saveStart = Date.now();
+        logger.info('Starting image save operation', context.context);
+        
+        try {
+          const result = await saveImage({ 
+            buffer, 
+            baseName, 
+            contentType: file.type 
+          });
+          
+          const saveDuration = Date.now() - saveStart;
+          
+          logger.info('Image upload completed successfully', {
+            ...context.context,
+            result,
+            saveDuration,
+            fileSize: file.size,
+            fileName: file.name
+          });
+          
+          return NextResponse.json({
+            success: true,
+            ...result,
+            uploadInfo: {
+              originalName: file.name,
+              size: file.size,
+              type: file.type,
+              duration: saveDuration
+            },
+            requestId: context.context.requestId
+          }, { status: 201 });
+          
+        } catch (saveError) {
+          const saveDuration = Date.now() - saveStart;
+          
+          logger.error('Image save operation failed', saveError, {
+            ...context.context,
+            saveDuration,
+            fileInfo: processInfo
+          });
+          
+          const { ApiException } = await import('@/lib/api-middleware');
+          throw new ApiException(
+            'Failed to save uploaded image',
+            500,
+            'SAVE_FAILED',
+            { 
+              originalError: saveError instanceof Error ? saveError.message : 'Unknown error',
+              fileInfo: processInfo,
+              saveDuration
+            }
+          );
+        }
+      }
+    )
+  )
+);
 

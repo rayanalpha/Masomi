@@ -63,7 +63,7 @@ export default async function Home() {
                 .map((p) => ({
                   slug: p.slug,
                   name: p.name,
-                  image: p.images[0].url.startsWith("/uploads/") ? p.images[0].url.replace("/uploads/", "/uploads/_thumbs/") : p.images[0].url,
+                  image: p.images[0].url.startsWith("/uploads/") ? p.images[0].url.replace("/uploads/", "/uploads/_thumbs/").replace(/\.[^.]+$/, ".jpg") : p.images[0].url,
                 }));
               // Shuffle and take 10
               for (let i = pool.length - 1; i > 0; i--) {

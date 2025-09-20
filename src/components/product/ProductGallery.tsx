@@ -11,7 +11,7 @@ export default function ProductGallery({ images }: { images: Img[] }) {
     return safe.map((i) => ({ url: i.url, alt: i.alt ?? "" }));
   }, [images]);
 
-  const thumbs = useMemo(() => imgs.map((i) => (i.url.startsWith("/uploads/") ? i.url.replace("/uploads/", "/uploads/_thumbs/") : i.url)), [imgs]);
+  const thumbs = useMemo(() => imgs.map((i) => (i.url.startsWith("/uploads/") ? i.url.replace("/uploads/", "/uploads/_thumbs/").replace(/\.[^.]+$/, ".jpg") : i.url)), [imgs]);
 
   const [index, setIndex] = useState(0);
   const [open, setOpen] = useState(false);
