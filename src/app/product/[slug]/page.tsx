@@ -1,13 +1,15 @@
 import type { Metadata } from "next";
-import prisma from "@/lib/prisma";
+import { fetchProductBySlug } from "@/lib/server-data";
+import { withDatabaseRetry } from "@/lib/db-serverless";
 import { notFound } from "next/navigation";
 import ProductGallery from "@/components/product/ProductGallery";
 
 export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params;
-  const p = await prisma.product.findUnique({ where: { slug }, include: { images: true, categories: true } });
+  const p = await fetchProductBySlug(slug);
   if (!p) return {};
   return {
     title: p.name,
@@ -22,15 +24,17 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 
 export default async function ProductPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  const p = await prisma.product.findUnique({
-    where: { slug },
-    include: {
-      images: { orderBy: [{ sort: "asc" }, { id: "asc" }] },
-      categories: true,
-      attributes: { include: { attribute: true } },
-      attrValues: { include: { attributeValue: { include: { attribute: true } } } },
-      variations: { include: { options: { include: { attribute: true, attributeValue: true } } } },
-    },
+  const p = await withDatabaseRetry(async (prisma) => {
+    return await prisma.product.findUnique({
+      where: { slug },
+      include: {
+        images: { orderBy: [{ sort: "asc" }, { id: "asc" }] },
+        categories: true,
+        attributes: { include: { attribute: true } },
+        attrValues: { include: { attributeValue: { include: { attribute: true } } } },
+        variations: { include: { options: { include: { attribute: true, attributeValue: true } } } },
+      },
+    });
   });
   if (!p) return notFound();
 

@@ -1,8 +1,16 @@
 import Link from "next/link";
 import { withDatabaseRetry } from "@/lib/db-serverless";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 export default async function AttributesPage() {
-  const attrs = await prisma.attribute.findMany({ include: { _count: { select: { values: true } } }, orderBy: { name: "asc" } });
+  const attrs = await withDatabaseRetry(async (prisma) => {
+    return await prisma.attribute.findMany({ 
+      include: { _count: { select: { values: true } } }, 
+      orderBy: { name: "asc" } 
+    });
+  });
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
