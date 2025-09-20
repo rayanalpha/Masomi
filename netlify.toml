@@ -1,5 +1,5 @@
 [build]
-  command = "npm run netlify:build"
+  command = "npm install && npm run netlify:build"
   publish = ".next"
 
 # Ensure Next.js runtime is used for SSR, API routes, and Images
@@ -15,8 +15,8 @@
   NODE_VERSION = "20"
   # Disable Next telemetry on CI
   NEXT_TELEMETRY_DISABLED = "1"
-  # Force production mode for better stability
-  NODE_ENV = "production"
+  # Install dev dependencies during build
+  NPM_FLAGS = "--production=false"
   # Use pooled connections for better serverless performance
   PRISMA_USE_DIRECT = "false"
   DB_USE_DIRECT = "false"

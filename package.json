@@ -18,6 +18,9 @@
   "dependencies": {
     "@prisma/client": "^6.16.1",
     "@supabase/supabase-js": "^2.46.1",
+    "@tailwindcss/forms": "^0.5.10",
+    "@tailwindcss/postcss": "^4",
+    "@tailwindcss/typography": "^0.5.16",
     "bcryptjs": "^3.0.2",
     "clsx": "^2.1.1",
     "framer-motion": "^12.23.12",
@@ -32,21 +35,18 @@
     "react-wrap-balancer": "^1.1.1",
     "sharp": "^0.33.3",
     "tailwind-merge": "^3.3.1",
+    "tailwindcss": "^4",
     "zod": "^4.1.7"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
     "@netlify/plugin-nextjs": "^5.13.1",
-    "@tailwindcss/forms": "^0.5.10",
-    "@tailwindcss/postcss": "^4",
-    "@tailwindcss/typography": "^0.5.16",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "15.5.2",
     "prisma": "^6.16.1",
-    "tailwindcss": "^4",
     "typescript": "^5"
   },
   "prisma": {
