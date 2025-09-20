@@ -10,8 +10,6 @@
   node_bundler = "esbuild"
   # Sharp, Prisma, and Supabase SDK available in Netlify Functions
   external_node_modules = ["sharp", "@prisma/client", "@supabase/supabase-js"]
-  # Increase function timeout for database operations
-  timeout = 10
 
 [build.environment]
   NODE_VERSION = "20"
