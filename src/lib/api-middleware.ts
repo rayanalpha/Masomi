@@ -250,9 +250,19 @@ export function validateRequest<T>(schema: any, field: 'body' | 'query' | 'param
 }
 
 /**
- * Rate limiting middleware (simple implementation)
+ * Rate limiting middleware with memory cleanup
  */
 const rateLimitStore = new Map<string, { count: number; resetTime: number }>();
+
+// Cleanup expired entries every 5 minutes
+setInterval(() => {
+  const now = Date.now();
+  for (const [key, value] of rateLimitStore.entries()) {
+    if (now > value.resetTime) {
+      rateLimitStore.delete(key);
+    }
+  }
+}, 5 * 60 * 1000);
 
 export function rateLimit(maxRequests = 100, windowMs = 60000) {
   return (handler: ApiHandler): ApiHandler => {

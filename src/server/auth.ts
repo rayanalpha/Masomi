@@ -6,7 +6,7 @@ import { withDatabaseRetry } from "@/lib/db-serverless";
 // Extended user type for better TypeScript support
 export interface ExtendedUser extends User {
   id: string;
-  role: string;
+  role: 'ADMIN' | 'MANAGER' | 'CUSTOMER';
 }
 
 export const authOptions: NextAuthOptions = {
@@ -30,10 +30,14 @@ export const authOptions: NextAuthOptions = {
       
       async authorize(credentials) {
         try {
-          console.log('[Auth] Login attempt for:', credentials?.email);
+          if (process.env.NODE_ENV === 'development') {
+            console.log('[Auth] Login attempt for:', credentials?.email);
+          }
           
           if (!credentials?.email || !credentials?.password) {
-            console.log('[Auth] Missing credentials');
+            if (process.env.NODE_ENV === 'development') {
+              console.log('[Auth] Missing credentials');
+            }
             return null;
           }
           
@@ -51,19 +55,29 @@ export const authOptions: NextAuthOptions = {
           });
           
           if (!user) {
-            console.log('[Auth] User not found:', credentials.email);
+            if (process.env.NODE_ENV === 'development') {
+              console.log('[Auth] User not found:', credentials.email);
+            }
             return null;
           }
           
-          console.log('[Auth] User found, checking password');
+          if (process.env.NODE_ENV === 'development') {
+            console.log('[Auth] User found, checking password');
+          }
+          
           const isValid = await compare(credentials.password, user.passwordHash);
           
           if (!isValid) {
-            console.log('[Auth] Invalid password');
+            if (process.env.NODE_ENV === 'development') {
+              console.log('[Auth] Invalid password');
+            }
             return null;
           }
           
-          console.log('[Auth] Authentication successful for:', user.email);
+          if (process.env.NODE_ENV === 'development') {
+            console.log('[Auth] Authentication successful for:', user.email);
+          }
+          
           return {
             id: user.id,
             email: user.email,
@@ -81,25 +95,33 @@ export const authOptions: NextAuthOptions = {
   
   callbacks: {
     async jwt({ token, user, trigger }) {
-      console.log('[Auth] JWT callback:', { hasToken: !!token, hasUser: !!user, trigger });
+      if (process.env.NODE_ENV === 'development') {
+        console.log('[Auth] JWT callback:', { hasToken: !!token, hasUser: !!user, trigger });
+      }
       
       if (user) {
         const extendedUser = user as ExtendedUser;
         token.role = extendedUser.role;
         token.uid = extendedUser.id;
-        console.log('[Auth] JWT token updated with user data');
+        if (process.env.NODE_ENV === 'development') {
+          console.log('[Auth] JWT token updated with user data');
+        }
       }
       
       return token;
     },
     
     async session({ session, token }) {
-      console.log('[Auth] Session callback:', { hasSession: !!session, hasToken: !!token });
+      if (process.env.NODE_ENV === 'development') {
+        console.log('[Auth] Session callback:', { hasSession: !!session, hasToken: !!token });
+      }
       
       if (session.user && token) {
-        (session.user as any).id = token.uid as string;
-        (session.user as any).role = token.role as string;
-        console.log('[Auth] Session updated with token data');
+        session.user.id = token.uid as string;
+        session.user.role = token.role as 'ADMIN' | 'MANAGER' | 'CUSTOMER';
+        if (process.env.NODE_ENV === 'development') {
+          console.log('[Auth] Session updated with token data');
+        }
       }
       
       return session;

@@ -11,10 +11,14 @@ function LoginForm() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Debug mode only available in development
+  const isDevelopment = process.env.NODE_ENV === 'development';
   const [debugMode, setDebugMode] = useState(false);
   const [debugResult, setDebugResult] = useState<string | null>(null);
 
   async function debugLogin() {
+    if (!isDevelopment) return;
+    
     if (!email || !password) {
       setError("لطفاً ایمیل و کلمه عبور را وارد کنید");
       return;
@@ -45,6 +49,8 @@ function LoginForm() {
   }
 
   async function recreateAdmin() {
+    if (!isDevelopment) return;
+    
     if (!email || !password) {
       setError("لطفاً ایمیل و کلمه عبور را وارد کنید");
       return;
@@ -127,39 +133,41 @@ function LoginForm() {
           {loading ? "در حال ورود..." : "ورود"}
         </button>
         
-        <div className="flex gap-2">
-          <button 
-            type="button" 
-            onClick={() => setDebugMode(!debugMode)} 
-            className="text-xs bg-blue-600 px-2 py-1 rounded text-white"
-          >
-            {debugMode ? 'مخفی کردن Debug' : 'نمایش Debug'}
-          </button>
-          
-          {debugMode && (
-            <>
-              <button 
-                type="button" 
-                onClick={debugLogin}
-                disabled={loading}
-                className="text-xs bg-green-600 px-2 py-1 rounded text-white disabled:opacity-60"
-              >
-                تست لاگین
-              </button>
-              <button 
-                type="button" 
-                onClick={recreateAdmin}
-                disabled={loading}
-                className="text-xs bg-orange-600 px-2 py-1 rounded text-white disabled:opacity-60"
-              >
-                بازسازی ادمین
-              </button>
-            </>
-          )}
-        </div>
+        {isDevelopment && (
+          <div className="flex gap-2">
+            <button 
+              type="button" 
+              onClick={() => setDebugMode(!debugMode)} 
+              className="text-xs bg-blue-600 px-2 py-1 rounded text-white"
+            >
+              {debugMode ? 'مخفی کردن Debug' : 'نمایش Debug'}
+            </button>
+            
+            {debugMode && (
+              <>
+                <button 
+                  type="button" 
+                  onClick={debugLogin}
+                  disabled={loading}
+                  className="text-xs bg-green-600 px-2 py-1 rounded text-white disabled:opacity-60"
+                >
+                  تست لاگین
+                </button>
+                <button 
+                  type="button" 
+                  onClick={recreateAdmin}
+                  disabled={loading}
+                  className="text-xs bg-orange-600 px-2 py-1 rounded text-white disabled:opacity-60"
+                >
+                  بازسازی ادمین
+                </button>
+              </>
+            )}
+          </div>
+        )}
       </div>
       
-      {debugMode && debugResult && (
+      {isDevelopment && debugMode && debugResult && (
         <div className="mt-4">
           <h3 className="text-xs font-bold mb-2">نتیجه Debug:</h3>
           <pre className="text-xs bg-gray-900 p-2 rounded overflow-auto max-h-64 text-left">

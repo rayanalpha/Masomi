@@ -71,7 +71,7 @@ export async function fetchProducts(options?: {
         take,
         skip
       });
-    }, 3, 500); // 3 retries with 500ms base delay
+    }, 5, 1000); // 5 retries with 1000ms base delay for better reliability
 
     console.log(`[ServerData] Successfully fetched ${products.length} products`);
     return products as ProductWithRelations[];
@@ -117,7 +117,7 @@ export async function fetchProductBySlug(slug: string): Promise<ProductWithRelat
           }
         }
       });
-    }, 3, 500);
+    }, 5, 1000); // 5 retries with 1000ms base delay
 
     if (product) {
       console.log(`[ServerData] Successfully fetched product: ${product.name}`);
@@ -149,7 +149,7 @@ export async function fetchCategories() {
           }
         }
       });
-    }, 3, 500);
+    }, 5, 1000); // 5 retries with 1000ms base delay
 
     console.log(`[ServerData] Successfully fetched ${categories.length} categories`);
     return categories;
@@ -183,7 +183,7 @@ export async function countProducts(options?: {
       };
 
       return await prisma.product.count({ where });
-    }, 3, 500);
+    }, 5, 1000); // 5 retries with 1000ms base delay
 
     console.log(`[ServerData] Product count: ${count}`);
     return count;

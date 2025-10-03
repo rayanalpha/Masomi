@@ -13,10 +13,15 @@ function resolveDatabaseUrl(): string {
   }
 
   const isDev = process.env.NODE_ENV === "development";
+  const isProduction = process.env.NODE_ENV === "production";
 
-  // Prefer pooled connection by default (better for serverless and fewer firewall issues)
-  // Only use a direct (5432) connection in development when explicitly enabled
-  // by setting PRISMA_USE_DIRECT=true (or DB_USE_DIRECT=true) and providing DATABASE_URL_DIRECT.
+  // For production serverless (Netlify/Liara), always use pooled connection
+  if (isProduction) {
+    safeLogResolvedTarget(base, "Pooled (Production)");
+    return maybeAugmentTimeouts(base);
+  }
+
+  // For development, prefer pooled connection unless explicitly overridden
   const directOverride = process.env.DATABASE_URL_DIRECT;
   const useDirectFlag = [process.env.PRISMA_USE_DIRECT, process.env.DB_USE_DIRECT]
     .some((v) => v && ["1", "true", "TRUE", "True"].includes(v));
@@ -36,14 +41,28 @@ function maybeAugmentTimeouts(urlStr: string): string {
   try {
     const url = new URL(urlStr);
     const params = url.searchParams;
+    const isProduction = process.env.NODE_ENV === "production";
 
-    // Supabase pooled ports can have a slower initial handshake. Give it a bit more room.
-    if (!params.has("connect_timeout")) params.set("connect_timeout", "10"); // seconds
-    if (!params.has("pool_timeout")) params.set("pool_timeout", "15"); // seconds
+    // Enhanced timeouts for serverless environments
+    if (!params.has("connect_timeout")) {
+      params.set("connect_timeout", isProduction ? "15" : "10"); // seconds
+    }
+    if (!params.has("pool_timeout")) {
+      params.set("pool_timeout", isProduction ? "20" : "15"); // seconds
+    }
+    if (!params.has("socket_timeout")) {
+      params.set("socket_timeout", isProduction ? "30" : "20"); // seconds
+    }
 
-    // Allow a small pool to reduce head-of-line blocking in dev and low-traffic serverless.
-    // Prisma defaults to 1 in PgBouncer mode; 3-5 is still safe for Supabase free tiers.
-    if (!params.has("connection_limit")) params.set("connection_limit", "3");
+    // Optimized connection pool for serverless
+    if (!params.has("connection_limit")) {
+      params.set("connection_limit", isProduction ? "1" : "3");
+    }
+
+    // Add connection pooling parameters for better serverless performance
+    if (!params.has("pgbouncer")) {
+      params.set("pgbouncer", "true");
+    }
 
     url.search = params.toString();
     return url.toString();
@@ -72,7 +91,9 @@ const createOptimizedPrismaClient = () => {
   // Generate unique connection ID to prevent prepared statement conflicts
   const connectionId = `conn_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
 
-  console.log(`[Prisma] Creating client with connection ID: ${connectionId}`);
+  if (isDev) {
+    console.log(`[Prisma] Creating client with connection ID: ${connectionId}`);
+  }
 
   return new PrismaClient({
     log: isDev ? ["query", "error", "warn", "info"] : ["error"],
@@ -80,8 +101,8 @@ const createOptimizedPrismaClient = () => {
 
     // Optimized for serverless environments
     transactionOptions: {
-      maxWait: 2000, // Shorter wait time for serverless
-      timeout: 4000, // Shorter timeout
+      maxWait: isProduction ? 5000 : 2000, // Longer wait for production
+      timeout: isProduction ? 10000 : 4000, // Longer timeout for production
       isolationLevel: 'ReadCommitted' // More compatible with connection pooling
     }
   });
@@ -105,16 +126,18 @@ function getPrismaClient(): PrismaClient {
   const isDev = process.env.NODE_ENV === "development";
   const isProduction = process.env.NODE_ENV === "production";
   
-  // In production serverless, always create fresh instances
+  // In production serverless, always create fresh instances to avoid connection issues
   if (isProduction) {
     globalForPrisma.connectionCount++;
-    console.log(`[Prisma] Production: Creating fresh instance #${globalForPrisma.connectionCount}`);
+    if (isDev) {
+      console.log(`[Prisma] Production: Creating fresh instance #${globalForPrisma.connectionCount}`);
+    }
     return createOptimizedPrismaClient();
   }
   
-  // In development, reuse instance but recreate if too old (5 minutes)
+  // In development, reuse instance but recreate if too old (3 minutes for better stability)
   const instanceAge = globalForPrisma.lastUsed ? now - globalForPrisma.lastUsed : Infinity;
-  const maxAge = 5 * 60 * 1000; // 5 minutes
+  const maxAge = 3 * 60 * 1000; // 3 minutes
   
   if (!globalForPrisma.prismaInstance || instanceAge > maxAge) {
     if (globalForPrisma.prismaInstance) {

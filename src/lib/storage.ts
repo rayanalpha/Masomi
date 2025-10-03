@@ -81,7 +81,7 @@ export async function saveImage(params: { buffer: Buffer; baseName: string; cont
         position: "center",
         withoutEnlargement: false
       })
-      .jpeg({ quality: 85 }) // Always convert to JPEG for consistency
+      .webp({ quality: 85, effort: 6 }) // Use WebP for better compression
       .toBuffer();
       
     console.log('[Storage] Thumbnail generated successfully:', {
@@ -150,12 +150,12 @@ export async function saveImage(params: { buffer: Buffer; baseName: string; cont
       // Upload thumbnail (if generated)
       if (thumbBuffer) {
         console.log('[Storage] Uploading thumbnail to Supabase...');
-        const thumbFilename = `_thumbs/${filename.replace(/\.[^.]+$/, '.jpg')}`; // Force .jpg for thumbs
+        const thumbFilename = `_thumbs/${filename.replace(/\.[^.]+$/, '.webp')}`; // Use .webp for thumbs
         
         const { data: thumbData, error: thErr } = await supabase.storage
           .from(BUCKET)
           .upload(thumbFilename, thumbBuffer, {
-            contentType: 'image/jpeg',
+            contentType: 'image/webp',
             upsert: true,
             cacheControl: "31536000",
             duplex: 'half'
@@ -174,7 +174,7 @@ export async function saveImage(params: { buffer: Buffer; baseName: string; cont
       // Return proxied URLs (served via Next route /uploads)
       return {
         url: `/uploads/${filename}`,
-        thumbUrl: `/uploads/_thumbs/${filename.replace(/\.[^.]+$/, '.jpg')}`,
+        thumbUrl: `/uploads/_thumbs/${filename.replace(/\.[^.]+$/, '.webp')}`,
       };
       
     } catch (supabaseError) {
@@ -199,7 +199,7 @@ export async function saveImage(params: { buffer: Buffer; baseName: string; cont
     console.log('[Storage] Original file written successfully');
 
     if (thumbBuffer) {
-      const thumbFilename = filename.replace(/\.[^.]+$/, '.jpg');
+      const thumbFilename = filename.replace(/\.[^.]+$/, '.webp');
       const thumbPath = path.join(THUMBS_DIR, thumbFilename);
       console.log('[Storage] Writing thumbnail to:', thumbPath);
       await fs.writeFile(thumbPath, thumbBuffer);
@@ -209,7 +209,7 @@ export async function saveImage(params: { buffer: Buffer; baseName: string; cont
     console.log('[Storage] Local storage completed successfully');
     return {
       url: `/uploads/${filename}`,
-      thumbUrl: `/uploads/_thumbs/${filename.replace(/\.[^.]+$/, '.jpg')}`,
+      thumbUrl: `/uploads/_thumbs/${filename.replace(/\.[^.]+$/, '.webp')}`,
     };
     
   } catch (localError) {
