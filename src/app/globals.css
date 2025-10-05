@@ -1,6 +1,37 @@
 @import "tailwindcss";
 @import "./lux.css";
 
+/* Hide scrollbar for horizontal scroll */
+.scrollbar-hide {
+  -ms-overflow-style: none;  /* Internet Explorer 10+ */
+  scrollbar-width: none;  /* Firefox */
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;  /* Safari and Chrome */
+}
+
+/* Rail animation for product slider */
+@keyframes rail {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+.animate-rail {
+  animation: rail 40s linear infinite;
+  width: 200%; /* دو برابر عرض برای انیمیشن بی‌نهایت */
+  display: flex;
+  gap: 1rem;
+  will-change: transform;
+}
+
+.animate-rail:hover {
+  animation-play-state: paused;
+}
+
 :root {
   /* Base colors */
   --background: #0b0b0b;

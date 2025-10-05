@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { Search, X } from "lucide-react";
+import SearchImage from "./SearchImage";
 
 interface ResultItem { slug: string; name: string; image: string; }
 
@@ -73,10 +74,17 @@ export default function SearchOverlay() {
             <ul className="divide-y divide-white/10">
               {results.map((r) => (
                 <li key={r.slug}>
-                  <Link href={`/product/${r.slug}`} className="flex items-center gap-3 p-3 hover:bg-white/5" onClick={() => setOpen(false)}>
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={r.image} alt={r.name} className="h-12 w-16 rounded-md object-cover" />
-                    <div className="text-sm font-medium">{r.name}</div>
+                  <Link href={`/product/${r.slug}`} className="flex items-center gap-3 p-3 hover:bg-white/5 transition-colors" onClick={() => setOpen(false)}>
+                    <div className="relative h-12 w-16 rounded-md overflow-hidden bg-gray-200 flex-shrink-0">
+                      <SearchImage 
+                        src={r.image} 
+                        alt={r.name}
+                        className="h-full w-full object-cover"
+                      />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="text-sm font-medium text-foreground truncate">{r.name}</div>
+                    </div>
                   </Link>
                 </li>
               ))}

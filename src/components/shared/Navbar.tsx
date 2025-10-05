@@ -33,7 +33,7 @@ export function Navbar() {
           </div>
           <Link href="/" className="text-lg font-extrabold tracking-tight">
             <span className="text-gold-gradient">
-              گالری طلا لوکس
+              گالری معصومی
             </span>
           </Link>
           <nav className="hidden md:flex items-center gap-2">

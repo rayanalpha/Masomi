@@ -1,6 +1,9 @@
 import Link from "next/link";
 import { fetchProducts } from "@/lib/server-data";
 import ProductRail from "@/components/home/ProductRail";
+import FeaturedProducts from "@/components/home/FeaturedProducts";
+import PriceTicker from "@/components/shared/PriceTicker";
+import { getSliderImageUrl } from "@/lib/image-utils";
 
 // Disable caching for serverless
 export const dynamic = "force-dynamic";
@@ -25,11 +28,14 @@ export default async function Home() {
           ))}
         </div>
         <div className="container relative">
-          <h1 className="lux-h1">
-            <span className="text-gold-gradient">گالری طلا لوکس</span>
-          </h1>
+          <div className="text-center mb-6">
+            <h1 className="lux-h1">
+              <span className="text-gold-gradient">گالری معصومی</span>
+            </h1>
+            <p className="text-gold-400 font-medium text-lg mt-2">مجموعه‌ای از بهترین طلا و جواهرات</p>
+          </div>
           <p className="mt-4 max-w-2xl text-base md:text-lg text-foreground/80">
-            ویترین آنلاین مجموعه‌ای منتخب از طلا و جواهرات لوکس — نمایش هنرمندانه، بدون فروش آنلاین.
+            با بیش از دو دهه تجربه در زمینه طلا و جواهرات، گالری معصومی ارائه‌دهنده بهترین و باکیفیت‌ترین محصولات طلا و جواهرات است. مجموعه‌ای منتخب از طلا و جواهرات لوکس — نمایش هنرمندانه، بدون فروش آنلاین.
           </p>
           <div className="mt-8 flex flex-wrap gap-3 items-center">
             <Link href="/catalog" className="rounded-full bg-[var(--gold-500)] text-[var(--color-brand-foreground)] px-5 py-2 text-sm font-semibold shadow hover:opacity-95 transition">
@@ -61,19 +67,22 @@ export default async function Home() {
                 take: 100
               });
               
-              const pool = products
-                .filter((p) => p.images.length)
-                .map((p) => ({
-                  slug: p.slug,
-                  name: p.name,
-                  image: p.images[0].url.startsWith("/uploads/") ? p.images[0].url.replace("/uploads/", "/uploads/_thumbs/").replace(/\.[^.]+$/, ".jpg") : p.images[0].url,
-                }));
-              // Shuffle and take 10
+              const pool = await Promise.all(
+                products
+                  .filter((p) => p.images.length)
+                  .map(async (p) => ({
+                    slug: p.slug,
+                    name: p.name,
+                    image: await getSliderImageUrl(p.images[0].url),
+                  }))
+              );
+              
+              // Shuffle and take maximum 8 products for slider
               for (let i = pool.length - 1; i > 0; i--) {
                 const j = Math.floor(Math.random() * (i + 1));
                 [pool[i], pool[j]] = [pool[j], pool[i]];
               }
-              const sample = pool.slice(0, 10);
+              const sample = pool.slice(0, 8); // حداکثر 8 محصول
               if (!sample.length) return null;
               return <ProductRail items={sample} />;
             } catch (e) {
@@ -83,23 +92,15 @@ export default async function Home() {
           })()}
         </div>
       </section>
-      <section className="py-16">
+      {/* Price Ticker Section */}
+      <section className="py-16 bg-gradient-to-b from-background to-background/50">
         <div className="container">
-          <h2 className="text-xl font-bold mb-6">کالکشن‌های برجسته</h2>
-          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {[
-              { title: "Classic", href: "/catalog?category=انگشتر" },
-              { title: "Modern", href: "/catalog?category=دستبند" },
-              { title: "Bridal", href: "/catalog?category=نیم‌ست" },
-            ].map((c) => (
-              <Link key={c.title} href={c.href} className="group block rounded-2xl border-gold p-6 shadow-elegant hover:shadow-elegant-lg transition">
-                <div className="lux-h3">{c.title}</div>
-                <div className="mt-2 text-sm text-foreground/70">مشاهده محصولات کالکشن {c.title}</div>
-              </Link>
-            ))}
-          </div>
+          <PriceTicker />
         </div>
       </section>
+
+      {/* Featured Products Section */}
+      <FeaturedProducts />
     </div>
   );
 }

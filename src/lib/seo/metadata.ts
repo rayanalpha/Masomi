@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://example.com";
-const siteName = "گالری طلا لوکس";
-const siteDescription = "ویترین آنلاین طلا و جواهرات لوکس؛ نمایش مجموعه‌های خاص بدون خرید آنلاین.";
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://masoomi-gallery.com";
+const siteName = "گالری معصومی - طلا و جواهرات لوکس";
+const siteDescription = "گالری معصومی با بیش از دو دهه تجربه در زمینه طلا و جواهرات، ارائه‌دهنده بهترین و باکیفیت‌ترین محصولات طلا و جواهرات در تهران. مجموعه‌ای منتخب از طلا و جواهرات لوکس.";
 
 export const defaultMetadata: Metadata = {
   metadataBase: new URL(siteUrl),
