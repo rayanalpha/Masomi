@@ -3,16 +3,9 @@ import { withApiHandler, rateLimit } from '@/lib/api-middleware';
 import { 
   fetchRealGoldPrices, 
   fetchRealCurrencyPrices,
-  fetchGoldFromCoinGecko,
-  fetchCurrencyFromExchangeRate,
-  convertUsdToToman,
-  calculatePriceChange,
+  fetchRealCoinPrices,
   fetchRealUSDRate
 } from '@/lib/external-apis';
-import {
-  fetchGoldPricesWithFallback,
-  fetchCurrencyPricesWithFallback
-} from '@/lib/iranian-apis';
 
 export const dynamic = "force-dynamic";
 export const fetchCache = 'force-no-store';
@@ -27,111 +20,23 @@ export const GET = withApiHandler(
       try {
         console.log('[API] GET /api/prices called');
 
-        let goldPrices, currencyPrices;
-        // یکبار نرخ دلار را بگیر و بین طلا و ارز به اشتراک بگذار
-        const usdToToman = await fetchRealUSDRate();
+        // دریافت قیمت‌ها فقط از TGJU
+        const [goldPrices, currencyPrices, coinPrices] = await Promise.all([
+          fetchRealGoldPrices(),
+          fetchRealCurrencyPrices(),
+          fetchRealCoinPrices()
+        ]);
+        
+        console.log('[API] Successfully fetched real prices from TGJU');
 
-        try {
-          // تلاش برای دریافت قیمت‌های واقعی از API های ایرانی
-          const [iranianGoldPrices, iranianCurrencyPrices] = await Promise.all([
-            fetchGoldPricesWithFallback(),
-            fetchCurrencyPricesWithFallback()
-          ]);
-          
-          goldPrices = iranianGoldPrices;
-          currencyPrices = iranianCurrencyPrices;
-          
-          console.log('[API] Successfully fetched real prices from Iranian APIs');
-        } catch (iranianError) {
-          console.warn('[API] Iranian APIs failed, trying external APIs:', iranianError);
-          
-          try {
-            // تلاش برای دریافت قیمت‌های واقعی از API های خارجی
-            const [externalGoldPrices, externalCurrencyPrices] = await Promise.all([
-              fetchRealGoldPrices(),
-              fetchRealCurrencyPrices(usdToToman)
-            ]);
-            
-            goldPrices = externalGoldPrices;
-            currencyPrices = externalCurrencyPrices;
-            
-            console.log('[API] Successfully fetched real prices from external APIs');
-          } catch (externalError) {
-            console.warn('[API] External APIs failed, using fallback prices:', externalError);
-            
-            // در صورت خطا در API های خارجی، از قیمت‌های fallback استفاده کن
-            const fallbackGoldPrices = [
-              {
-                name: 'طلا 18 عیار',
-                price: 2100000,
-                change: 15000,
-                changePercent: 0.72
-              },
-              {
-                name: 'طلا 21 عیار',
-                price: 2450000,
-                change: 17500,
-                changePercent: 0.72
-              },
-              {
-                name: 'طلا 24 عیار',
-                price: 2800000,
-                change: 20000,
-                changePercent: 0.72
-              },
-              {
-                name: 'نیم سکه',
-                price: 1400000,
-                change: 10000,
-                changePercent: 0.72
-              },
-              {
-                name: 'سکه تمام',
-                price: 2800000,
-                change: 20000,
-                changePercent: 0.72
-              }
-            ];
-
-            const fallbackCurrencyPrices = [
-              {
-                name: 'دلار آمریکا',
-                price: 42000,
-                change: 200,
-                changePercent: 0.48
-              },
-              {
-                name: 'یورو',
-                price: 46000,
-                change: -150,
-                changePercent: -0.32
-              },
-              {
-                name: 'پوند انگلیس',
-                price: 53000,
-                change: 300,
-                changePercent: 0.57
-              },
-              {
-                name: 'ین ژاپن',
-                price: 280,
-                change: -2,
-                changePercent: -0.71
-              }
-            ];
-
-            goldPrices = fallbackGoldPrices;
-            currencyPrices = fallbackCurrencyPrices;
-          }
-        }
-
-        console.log(`[API] Successfully fetched ${goldPrices.length} gold prices and ${currencyPrices.length} currency prices`);
+        console.log(`[API] Successfully fetched ${goldPrices.length} gold prices, ${currencyPrices.length} currency prices, and ${coinPrices.length} coin prices`);
 
         return new NextResponse(JSON.stringify({
           success: true,
           data: {
             gold: goldPrices,
             currency: currencyPrices,
+            coins: coinPrices,
             lastUpdated: new Date().toISOString()
           },
           message: 'قیمت‌ها با موفقیت دریافت شد'
