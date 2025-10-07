@@ -5,7 +5,7 @@ export function Footer() {
   return (
     <footer className="mt-24 border-t border-white/10">
       <div className="container py-8 md:py-12">
-        <div className="grid gap-8 md:grid-cols-4">
+        <div className="grid gap-8 md:grid-cols-3">
           {/* برند و توضیحات */}
           <div className="space-y-4">
             <div className="text-xl font-extrabold tracking-tight">
@@ -51,16 +51,6 @@ export function Footer() {
             </div>
           </div>
 
-          {/* قیمت‌های لحظه‌ای */}
-          <div className="space-y-4">
-            <h3 className="font-semibold text-foreground">قیمت‌های لحظه‌ای</h3>
-            <div className="text-sm text-foreground/70">
-              <p>طلا 18 عیار: 2,850,000 تومان</p>
-              <p>طلا 21 عیار: 3,325,000 تومان</p>
-              <p>طلا 24 عیار: 3,800,000 تومان</p>
-              <p className="text-xs text-foreground/50 mt-2">آخرین به‌روزرسانی: امروز</p>
-            </div>
-          </div>
         </div>
 
         {/* کپی رایت */}

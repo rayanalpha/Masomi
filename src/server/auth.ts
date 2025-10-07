@@ -2,6 +2,7 @@ import type { NextAuthOptions, User } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import { compare } from "bcryptjs";
 import { withDatabaseRetry } from "@/lib/db-serverless";
+import crypto from "crypto";
 
 // Extended user type for better TypeScript support
 export interface ExtendedUser extends User {
@@ -9,15 +10,20 @@ export interface ExtendedUser extends User {
   role: 'ADMIN' | 'MANAGER' | 'CUSTOMER';
 }
 
+// Helper to hash sensitive data for logging (GDPR compliant)
+function hashForLogging(data: string): string {
+  return crypto.createHash('sha256').update(data).digest('hex').substring(0, 8);
+}
+
 export const authOptions: NextAuthOptions = {
   session: {
     strategy: "jwt",
-    maxAge: 30 * 24 * 60 * 60, // 30 days
-    updateAge: 24 * 60 * 60, // 24 hours
+    maxAge: 7 * 24 * 60 * 60, // 7 days (reduced from 30 for better security)
+    updateAge: 60 * 60, // 1 hour (reduced from 24 hours)
   },
   
   jwt: {
-    maxAge: 30 * 24 * 60 * 60, // 30 days
+    maxAge: 7 * 24 * 60 * 60, // 7 days (matches session)
   },
   
   providers: [
@@ -30,8 +36,9 @@ export const authOptions: NextAuthOptions = {
       
       async authorize(credentials) {
         try {
-          if (process.env.NODE_ENV === 'development') {
-            console.log('[Auth] Login attempt for:', credentials?.email);
+          // Log with hashed email for privacy (GDPR compliant)
+          if (process.env.NODE_ENV === 'development' && credentials?.email) {
+            console.log('[Auth] Login attempt for user:', hashForLogging(credentials.email));
           }
           
           if (!credentials?.email || !credentials?.password) {
@@ -56,7 +63,7 @@ export const authOptions: NextAuthOptions = {
           
           if (!user) {
             if (process.env.NODE_ENV === 'development') {
-              console.log('[Auth] User not found:', credentials.email);
+              console.log('[Auth] User not found');
             }
             return null;
           }
@@ -75,7 +82,7 @@ export const authOptions: NextAuthOptions = {
           }
           
           if (process.env.NODE_ENV === 'development') {
-            console.log('[Auth] Authentication successful for:', user.email);
+            console.log('[Auth] Authentication successful');
           }
           
           return {

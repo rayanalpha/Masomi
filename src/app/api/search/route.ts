@@ -3,6 +3,9 @@ import prisma from "@/lib/prisma";
 import { promises as fs } from "fs";
 import path from "path";
 
+// Set maximum execution time for serverless functions (in seconds)
+export const maxDuration = 30;
+
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const q = (searchParams.get("q") || "").trim();

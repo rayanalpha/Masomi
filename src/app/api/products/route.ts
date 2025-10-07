@@ -4,6 +4,9 @@ import { authOptions } from "@/server/auth";
 import { withDatabaseRetry } from "@/lib/db-serverless";
 import { z } from "zod";
 
+// Set maximum execution time for serverless functions (in seconds)
+export const maxDuration = 30;
+
 const productCreateSchema = z.object({
   name: z.string().min(2),
   slug: z.string().min(2),
@@ -18,22 +21,43 @@ const productCreateSchema = z.object({
 });
 
 export async function GET(request: Request) {
-  const { searchParams } = new URL(request.url);
-  const page = Number(searchParams.get("page") || 1);
-  const perPage = Math.min(Number(searchParams.get("perPage") || 20), 100);
-  const q = searchParams.get("q") || undefined;
-
-  const where = q
-    ? {
-        OR: [
-          { name: { contains: q } },
-          { slug: { contains: q } },
-          { sku: { contains: q } },
-        ],
-      }
-    : {};
-
   try {
+    const { searchParams } = new URL(request.url);
+    
+    // Validate and sanitize pagination parameters
+    const page = Math.max(1, Number(searchParams.get("page") || 1));
+    const perPage = Math.min(
+      Math.max(1, Number(searchParams.get("perPage") || 20)),
+      50 // Reduced from 100 to 50 for better performance
+    );
+    
+    // Validate and sanitize search query
+    let q = searchParams.get("q")?.trim() || undefined;
+    
+    if (q) {
+      // Validate search query length
+      if (q.length > 100) {
+        return NextResponse.json(
+          { error: 'Search query too long (max 100 characters)' },
+          { status: 400 }
+        );
+      }
+      
+      // Sanitize special regex characters for safety
+      // While Prisma protects against SQL injection, this prevents performance issues
+      q = q.replace(/[%_]/g, '\\$&');
+    }
+
+    const where = q
+      ? {
+          OR: [
+            { name: { contains: q, mode: 'insensitive' as const } },
+            { slug: { contains: q, mode: 'insensitive' as const } },
+            { sku: { contains: q, mode: 'insensitive' as const } },
+          ],
+        }
+      : {};
+
     const result = await withDatabaseRetry(async (prisma) => {
       const [items, total] = await Promise.all([
         prisma.product.findMany({
@@ -50,6 +74,7 @@ export async function GET(request: Request) {
     });
     
     return NextResponse.json(result);
+    
   } catch (error) {
     console.error('[API] GET /api/products error:', error);
     return NextResponse.json({

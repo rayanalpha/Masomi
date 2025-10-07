@@ -2,7 +2,7 @@ import Link from "next/link";
 import { fetchProducts } from "@/lib/server-data";
 import ProductRail from "@/components/home/ProductRail";
 import FeaturedProducts from "@/components/home/FeaturedProducts";
-import PriceTicker from "@/components/shared/PriceTicker";
+import LivePrices from "@/components/home/LivePrices";
 import { getSliderImageUrl } from "@/lib/image-utils";
 
 // Disable caching for serverless
@@ -57,6 +57,11 @@ export default async function Home() {
               <button className="rounded-md border border-white/15 px-3 py-2 hover:border-white/25">اعمال</button>
             </form>
           </div>
+          {/* Live Prices Section */}
+          <div className="mt-8">
+            <LivePrices />
+          </div>
+
           {/* Product rail: 10 random items, looping */}
           {await (async () => {
             try {
@@ -90,12 +95,6 @@ export default async function Home() {
               return null;
             }
           })()}
-        </div>
-      </section>
-      {/* Price Ticker Section */}
-      <section className="py-16 bg-gradient-to-b from-background to-background/50">
-        <div className="container">
-          <PriceTicker />
         </div>
       </section>
 

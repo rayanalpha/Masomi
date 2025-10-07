@@ -5,6 +5,8 @@ import { logger } from '@/lib/logger';
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+// Set maximum execution time for serverless functions (in seconds)
+export const maxDuration = 30;
 
 const ALLOWED_TYPES = new Set(["image/png", "image/jpeg", "image/jpg", "image/webp", "image/avif"]);
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB

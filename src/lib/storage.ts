@@ -75,14 +75,36 @@ export async function saveImage(params: { buffer: Buffer; baseName: string; cont
       throw new Error('Invalid image: no dimensions');
     }
     
-    thumbBuffer = await image
-      .resize(400, 400, { 
-        fit: "cover", 
-        position: "center",
-        withoutEnlargement: false
-      })
-      .webp({ quality: 85, effort: 6 }) // Use WebP for better compression
-      .toBuffer();
+    // Security: Validate image dimensions to prevent memory exhaustion
+    const MAX_IMAGE_DIMENSION = 10000; // 10000x10000 pixels max
+    if (metadata.width > MAX_IMAGE_DIMENSION || metadata.height > MAX_IMAGE_DIMENSION) {
+      throw new Error(
+        `Image too large: ${metadata.width}x${metadata.height}. ` +
+        `Maximum allowed: ${MAX_IMAGE_DIMENSION}x${MAX_IMAGE_DIMENSION}`
+      );
+    }
+    
+    // Process with timeout to prevent hanging
+    const processWithTimeout = async <T>(promise: Promise<T>, timeoutMs: number): Promise<T> => {
+      return Promise.race([
+        promise,
+        new Promise<T>((_, reject) => 
+          setTimeout(() => reject(new Error('Image processing timeout')), timeoutMs)
+        )
+      ]);
+    };
+    
+    thumbBuffer = await processWithTimeout(
+      image
+        .resize(400, 400, { 
+          fit: "cover", 
+          position: "center",
+          withoutEnlargement: false
+        })
+        .webp({ quality: 85, effort: 6 }) // Use WebP for better compression
+        .toBuffer(),
+      10000 // 10 second timeout
+    );
       
     console.log('[Storage] Thumbnail generated successfully:', {
       originalSize: params.buffer.length,
@@ -216,4 +238,121 @@ export async function saveImage(params: { buffer: Buffer; baseName: string; cont
     console.error('[Storage] Local storage failed:', localError);
     throw new Error(`Storage operation failed: ${localError instanceof Error ? localError.message : 'Unknown error'}`);
   }
+}
+
+/**
+ * Delete an image and its thumbnail from storage
+ * 
+ * @param imageUrl - The URL of the image to delete (e.g., "/uploads/123_image.jpg")
+ * @returns Promise<void>
+ */
+export async function deleteImage(imageUrl: string): Promise<void> {
+  if (!imageUrl || !imageUrl.startsWith('/uploads/')) {
+    console.warn('[Storage] Invalid image URL for deletion:', imageUrl);
+    return;
+  }
+
+  // Extract filename from URL
+  const filename = imageUrl.replace('/uploads/', '');
+  
+  console.log('[Storage] Deleting image:', filename);
+
+  if (isSupabaseEnabled()) {
+    console.log('[Storage] Deleting from Supabase storage...');
+    
+    try {
+      const supabase = createClient(
+        process.env.SUPABASE_URL!, 
+        process.env.SUPABASE_SERVICE_ROLE_KEY!, 
+        {
+          auth: { persistSession: false },
+        }
+      );
+
+      // Delete original image
+      const { error: deleteError } = await supabase.storage
+        .from(BUCKET)
+        .remove([filename]);
+      
+      if (deleteError) {
+        console.error('[Storage] Supabase delete error:', deleteError);
+        // Don't throw - continue to try deleting thumbnail
+      } else {
+        console.log('[Storage] Original image deleted from Supabase');
+      }
+
+      // Delete thumbnail
+      const thumbFilename = `_thumbs/${filename.replace(/\.[^.]+$/, '.webp')}`;
+      const { error: thumbDeleteError } = await supabase.storage
+        .from(BUCKET)
+        .remove([thumbFilename]);
+      
+      if (thumbDeleteError) {
+        console.error('[Storage] Supabase thumbnail delete error:', thumbDeleteError);
+      } else {
+        console.log('[Storage] Thumbnail deleted from Supabase');
+      }
+
+      return;
+      
+    } catch (supabaseError) {
+      console.error('[Storage] Supabase deletion failed:', supabaseError);
+      // Continue to local storage fallback
+    }
+  }
+
+  // Local filesystem fallback
+  console.log('[Storage] Deleting from local filesystem...');
+  
+  try {
+    const filepath = path.join(UPLOAD_DIR, filename);
+    
+    // Delete original image
+    try {
+      await fs.unlink(filepath);
+      console.log('[Storage] Original image deleted from local storage');
+    } catch (err: any) {
+      if (err.code !== 'ENOENT') { // Ignore "file not found" errors
+        console.error('[Storage] Failed to delete original image:', err);
+      }
+    }
+
+    // Delete thumbnail
+    const thumbFilename = filename.replace(/\.[^.]+$/, '.webp');
+    const thumbPath = path.join(THUMBS_DIR, thumbFilename);
+    
+    try {
+      await fs.unlink(thumbPath);
+      console.log('[Storage] Thumbnail deleted from local storage');
+    } catch (err: any) {
+      if (err.code !== 'ENOENT') { // Ignore "file not found" errors
+        console.error('[Storage] Failed to delete thumbnail:', err);
+      }
+    }
+    
+  } catch (localError) {
+    console.error('[Storage] Local deletion failed:', localError);
+    // Don't throw - deletion is best-effort
+  }
+}
+
+/**
+ * Delete multiple images in batch
+ * 
+ * @param imageUrls - Array of image URLs to delete
+ * @returns Promise<void>
+ */
+export async function deleteImages(imageUrls: string[]): Promise<void> {
+  if (!imageUrls || imageUrls.length === 0) {
+    return;
+  }
+
+  console.log('[Storage] Batch deleting images:', imageUrls.length);
+
+  // Delete images in parallel for better performance
+  await Promise.allSettled(
+    imageUrls.map(url => deleteImage(url))
+  );
+
+  console.log('[Storage] Batch deletion completed');
 }

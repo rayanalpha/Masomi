@@ -252,21 +252,53 @@ export function validateRequest<T>(schema: any, field: 'body' | 'query' | 'param
 /**
  * Rate limiting middleware with memory cleanup
  */
+const MAX_RATE_LIMIT_ENTRIES = 10000;
 const rateLimitStore = new Map<string, { count: number; resetTime: number }>();
 
-// Cleanup expired entries every 5 minutes
-setInterval(() => {
+// Cleanup function to prevent memory leaks
+function cleanupRateLimitStore() {
   const now = Date.now();
+  
+  // If store is too large, aggressively clean up
+  if (rateLimitStore.size > MAX_RATE_LIMIT_ENTRIES) {
+    const entries = Array.from(rateLimitStore.entries());
+    
+    // Sort by reset time (oldest first)
+    entries.sort((a, b) => a[1].resetTime - b[1].resetTime);
+    
+    // Delete oldest 50% of entries
+    const toDelete = entries.slice(0, Math.floor(entries.length / 2));
+    toDelete.forEach(([key]) => rateLimitStore.delete(key));
+    
+    logger.warn('Rate limit store cleanup: removed old entries', {
+      removed: toDelete.length,
+      remaining: rateLimitStore.size
+    });
+  }
+  
+  // Clean up expired entries
+  let expiredCount = 0;
   for (const [key, value] of rateLimitStore.entries()) {
     if (now > value.resetTime) {
       rateLimitStore.delete(key);
+      expiredCount++;
     }
   }
-}, 5 * 60 * 1000);
+  
+  if (expiredCount > 0 && process.env.NODE_ENV === 'development') {
+    console.log(`[RateLimit] Cleaned up ${expiredCount} expired entries`);
+  }
+}
 
 export function rateLimit(maxRequests = 100, windowMs = 60000) {
   return (handler: ApiHandler): ApiHandler => {
     return async (context) => {
+      // Probabilistic cleanup (10% chance per request)
+      // This works better in serverless than setInterval
+      if (Math.random() < 0.1) {
+        cleanupRateLimitStore();
+      }
+      
       const clientId = context.request.headers.get('x-forwarded-for') || 
                       context.request.headers.get('x-real-ip') || 
                       'unknown';

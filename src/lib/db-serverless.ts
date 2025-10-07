@@ -1,5 +1,5 @@
 import { PrismaClient } from '@prisma/client';
-import { getFreshPrismaClient, disconnectPrisma } from './prisma';
+import { prisma as globalPrisma } from './prisma';
 
 /**
  * Enhanced Serverless Database Utilities
@@ -103,31 +103,27 @@ export async function withRetry<T>(
 export async function withDatabase<T>(
   operation: (prisma: PrismaClient) => Promise<T>
 ): Promise<T> {
-  let prisma: PrismaClient | null = null;
+  const isDev = process.env.NODE_ENV === "development";
   
   try {
-    // Create fresh Prisma client for this operation
-    console.log('[DB] Creating fresh Prisma client for serverless operation');
-    prisma = getFreshPrismaClient();
+    // Use global singleton Prisma client (managed by prisma.ts)
+    if (isDev) {
+      console.log('[DB] Executing database operation with singleton client');
+    }
     
-    // Execute the operation
-    console.log('[DB] Executing database operation...');
-    const result = await operation(prisma);
+    const result = await operation(globalPrisma);
     
-    console.log('[DB] Database operation completed successfully');
+    if (isDev) {
+      console.log('[DB] Database operation completed successfully');
+    }
+    
     return result;
     
   } catch (error) {
     console.error('[DB] Database operation failed:', error);
     throw error;
-    
-  } finally {
-    // Always cleanup the connection
-    if (prisma) {
-      console.log('[DB] Cleaning up database connection...');
-      await disconnectPrisma(prisma);
-    }
   }
+  // No disconnect needed - singleton manages its own lifecycle
 }
 
 // Convenience function that combines withDatabase and withRetry

@@ -4,6 +4,9 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/server/auth";
 import { z } from "zod";
 
+// Set maximum execution time for serverless functions (in seconds)
+export const maxDuration = 30;
+
 const createOrderSchema = z.object({
   number: z.string().min(3),
   customerName: z.string().min(1),

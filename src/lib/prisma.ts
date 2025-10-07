@@ -126,32 +126,46 @@ function getPrismaClient(): PrismaClient {
   const isDev = process.env.NODE_ENV === "development";
   const isProduction = process.env.NODE_ENV === "production";
   
-  // In production serverless, always create fresh instances to avoid connection issues
-  if (isProduction) {
-    globalForPrisma.connectionCount++;
-    if (isDev) {
-      console.log(`[Prisma] Production: Creating fresh instance #${globalForPrisma.connectionCount}`);
-    }
-    return createOptimizedPrismaClient();
-  }
-  
-  // In development, reuse instance but recreate if too old (3 minutes for better stability)
+  // Calculate instance age and max age based on environment
   const instanceAge = globalForPrisma.lastUsed ? now - globalForPrisma.lastUsed : Infinity;
-  const maxAge = 3 * 60 * 1000; // 3 minutes
+  const maxAge = isProduction ? 10 * 60 * 1000 : 3 * 60 * 1000; // 10 min production, 3 min dev
   
-  if (!globalForPrisma.prismaInstance || instanceAge > maxAge) {
+  // Check if we need to create a new instance
+  const needsNewInstance = !globalForPrisma.prismaInstance || instanceAge > maxAge;
+  
+  if (needsNewInstance) {
     if (globalForPrisma.prismaInstance) {
-      console.log(`[Prisma] Development: Recreating stale instance (age: ${Math.round(instanceAge / 1000)}s)`);
-      // Don't await disconnect in dev to avoid blocking
-      globalForPrisma.prismaInstance.$disconnect().catch(console.error);
+      const ageInSeconds = Math.round(instanceAge / 1000);
+      if (isDev) {
+        console.log(`[Prisma] Recreating stale instance (age: ${ageInSeconds}s, max: ${maxAge / 1000}s)`);
+      }
+      
+      // Disconnect old instance in background to avoid blocking
+      const oldInstance = globalForPrisma.prismaInstance;
+      setTimeout(() => {
+        oldInstance.$disconnect().catch((err) => {
+          if (isDev) {
+            console.error('[Prisma] Background disconnect error:', err);
+          }
+        });
+      }, 5000); // 5 second delay to allow in-flight queries to complete
     }
     
     globalForPrisma.prismaInstance = createOptimizedPrismaClient();
     globalForPrisma.connectionCount++;
-    console.log(`[Prisma] Development: Created instance #${globalForPrisma.connectionCount}`);
+    
+    if (isDev) {
+      console.log(`[Prisma] Created instance #${globalForPrisma.connectionCount} (${isProduction ? 'production' : 'development'})`);
+    }
   }
   
   globalForPrisma.lastUsed = now;
+  
+  // TypeScript guard: ensure instance is always defined
+  if (!globalForPrisma.prismaInstance) {
+    throw new Error('[Prisma] Failed to initialize Prisma client');
+  }
+  
   return globalForPrisma.prismaInstance;
 }
 

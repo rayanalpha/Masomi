@@ -12,6 +12,7 @@ const nextConfig: NextConfig = {
   allowedDevOrigins: ["http://100.127.255.253:3000"],
   experimental: {
     optimizePackageImports: ["lucide-react"],
+    // instrumentationHook is now enabled by default in Next.js 15.5+
   },
   serverExternalPackages: ['sharp', '@prisma/client'],
   // Temporarily disable ESLint for build
@@ -22,6 +23,7 @@ const nextConfig: NextConfig = {
   output: 'standalone',
   poweredByHeader: false,
   compress: true,
+  // Note: API route body size limits are now configured per-route using export const config
   // Add security headers
   async headers() {
     return [
