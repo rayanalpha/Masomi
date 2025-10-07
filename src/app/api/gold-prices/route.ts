@@ -29,7 +29,7 @@ export async function GET() {
         const html = await tgjuResponse.text();
         const $ = cheerio.load(html);
         
-        const extractedPrices = {};
+        const extractedPrices: { [key: string]: any } = {};
         
         // استخراج قیمت‌های کلیدی از المان‌های مختلف
         $('*').each((index, element) => {
@@ -109,7 +109,7 @@ export async function GET() {
 
         if (Object.keys(extractedPrices).length > 0) {
           // تبدیل به فرمت مورد انتظار
-          finalData = {};
+          finalData = {} as any;
           if (extractedPrices.dollar) finalData['price_dollar'] = extractedPrices.dollar;
           if (extractedPrices.eur) finalData['price_eur'] = extractedPrices.eur;
           if (extractedPrices.geram18) finalData['geram18'] = extractedPrices.geram18;
@@ -121,8 +121,8 @@ export async function GET() {
           console.log('[Gold Prices] Successfully scraped from TGJU website', Object.keys(finalData));
         }
       }
-    } catch (error) {
-      console.warn('[Gold Prices] TGJU scraping failed:', error.message);
+    } catch (error: any) {
+      console.warn('[Gold Prices] TGJU scraping failed:', error?.message || String(error));
     }
     } // end of disabled web scraping
 
@@ -149,8 +149,8 @@ export async function GET() {
             console.log('[Gold Prices] Successfully fetched from TGJU AJAX API');
           }
         }
-      } catch (error) {
-        console.warn('[Gold Prices] TGJU AJAX API failed:', error.message);
+      } catch (error: any) {
+        console.warn('[Gold Prices] TGJU AJAX API failed:', error?.message || String(error));
       }
     }
 
@@ -206,7 +206,7 @@ export async function GET() {
     }
     
     // پردازش داده‌ها برای استخراج قیمت‌های مهم
-    const processedPrices = {
+    const processedPrices: any = {
       usd: null,
       euro: null,
       gold18k: null,
@@ -346,8 +346,8 @@ export async function GET() {
       }
     });
 
-  } catch (error) {
-    console.error('[Gold Prices] Failed to fetch prices:', error);
+  } catch (error: any) {
+    console.error('[Gold Prices] Failed to fetch prices:', error?.message || String(error));
     
     return NextResponse.json({
       success: false,
