@@ -5,7 +5,7 @@ import { motion } from "framer-motion";
 import TiltCard from "@/components/ui/TiltCard";
 import SmartImage from "@/components/shared/SmartImage";
 
-export default function CatalogCard({ p }: { p: { id: string; slug: string; name: string; images: { url: string; alt: string | null }[]; categories: { name: string }[] } }) {
+export default function CatalogCard({ p }: { p: { id: string; slug: string; name: string; images: { url: string; alt: string | null }[]; categories: { name: string }[]; createdAt?: Date | string; isNew?: boolean } }) {
   const img = p.images[0]?.url ?? "/file.svg";
   // استفاده از thumbnail اگر وجود داشته باشد، در غیر این صورت از تصویر اصلی
   const thumb = img.startsWith("/uploads/") 
@@ -24,6 +24,15 @@ export default function CatalogCard({ p }: { p: { id: string; slug: string; name
             fallbackSrc={img}
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-black/10 to-transparent opacity-70" />
+          
+          {/* New badge */}
+          {p.isNew && (
+            <div className="absolute top-3 left-3 z-10">
+              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-bold bg-gradient-to-r from-green-500 to-green-600 text-white shadow-lg">
+                جدید
+              </span>
+            </div>
+          )}
           <div className="absolute inset-x-0 bottom-0 p-3">
             {cats.length ? (
               <div className="mb-2 flex flex-wrap gap-1">

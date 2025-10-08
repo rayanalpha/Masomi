@@ -50,7 +50,9 @@ export default async function CatalogPage({ searchParams }: { searchParams?: Pro
                   url: im.url, 
                   alt: im.alt || p.name 
                 })), 
-                categories: p.categories.map(c => ({ name: c.name })) 
+                categories: p.categories.map(c => ({ name: c.name })),
+                createdAt: p.createdAt,
+                isNew: new Date(p.createdAt) > new Date(Date.now() - 48 * 60 * 60 * 1000) // محصولات جدیدتر از 48 ساعت
               }} 
             />
           ))}

@@ -99,7 +99,7 @@ export default async function Home() {
                     price: p.price,
                     categories: p.categories,
                     isSpecial: !!(p.stock && p.stock < 5), // محصولاتی با موجودی کم را "ویژه" در نظر بگیریم
-                    isNew: new Date(p.createdAt) > new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) // محصولات جدیدتر از 30 روز
+                    isNew: new Date(p.createdAt) > new Date(Date.now() - 48 * 60 * 60 * 1000) // محصولات جدیدتر از 48 ساعت
                   }))
               );
               
