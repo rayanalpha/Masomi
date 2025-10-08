@@ -4,6 +4,7 @@ import React from "react";
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import Image from "next/image";
 import { Search } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import ScrollProgressBar from "./ScrollProgressBar";
@@ -31,10 +32,15 @@ export function Navbar() {
               جستجو
             </button>
           </div>
-          <Link href="/" className="text-lg font-extrabold tracking-tight">
-            <span className="text-gold-gradient">
-              گالری معصومی
-            </span>
+          <Link href="/" className="flex items-center">
+            <Image
+              src="/images/logo.png"
+              alt="گالری معصومی"
+              width={180}
+              height={40}
+              priority
+              className="h-8 md:h-10 w-auto object-contain transition-opacity hover:opacity-90"
+            />
           </Link>
           <nav className="hidden md:flex items-center gap-2">
             {links.map((l) => (

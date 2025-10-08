@@ -32,6 +32,46 @@ export interface ProductWithRelations {
 }
 
 /**
+ * Fetch all available categories from database
+ */
+export async function fetchCategories(): Promise<Array<{
+  id: string;
+  slug: string;
+  name: string;
+  productCount: number;
+}>> {
+  return withDatabaseRetry(async (client: PrismaClient) => {
+    const categories = await client.category.findMany({
+      select: {
+        id: true,
+        slug: true,
+        name: true,
+        _count: {
+          select: {
+            products: {
+              where: {
+                status: 'PUBLISHED',
+                visibility: 'PUBLIC'
+              }
+            }
+          }
+        }
+      },
+      orderBy: {
+        name: 'asc'
+      }
+    });
+
+    return categories.map(cat => ({
+      id: cat.id,
+      slug: cat.slug,
+      name: cat.name,
+      productCount: cat._count.products
+    }));
+  });
+}
+
+/**
  * Fetch products with proper serverless connection handling
  */
 export async function fetchProducts(options?: {
@@ -133,32 +173,7 @@ export async function fetchProductBySlug(slug: string): Promise<ProductWithRelat
   }
 }
 
-/**
- * Fetch all categories
- */
-export async function fetchCategories() {
-  try {
-    console.log('[ServerData] Fetching categories');
-    
-    const categories = await withDatabaseRetry(async (prisma: PrismaClient) => {
-      return await prisma.category.findMany({
-        orderBy: { name: 'asc' },
-        include: {
-          _count: {
-            select: { products: true }
-          }
-        }
-      });
-    }, 5, 1000); // 5 retries with 1000ms base delay
 
-    console.log(`[ServerData] Successfully fetched ${categories.length} categories`);
-    return categories;
-    
-  } catch (error) {
-    console.error('[ServerData] Failed to fetch categories:', error);
-    return [];
-  }
-}
 
 /**
  * Count total products (for pagination)

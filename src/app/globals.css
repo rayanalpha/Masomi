@@ -16,13 +16,13 @@
     transform: translateX(0);
   }
   100% {
-    transform: translateX(-50%);
+    transform: translateX(-33.333%);
   }
 }
 
 .animate-rail {
-  animation: rail 40s linear infinite;
-  width: 200%; /* دو برابر عرض برای انیمیشن بی‌نهایت */
+  animation: rail 60s linear infinite;
+  width: 300%; /* سه برابر عرض برای انیمیشن روان‌تر */
   display: flex;
   gap: 1rem;
   will-change: transform;
@@ -31,6 +31,128 @@
 .animate-rail:hover {
   animation-play-state: paused;
 }
+
+/* Luxury Animations */
+@keyframes luxury-float {
+  0%, 100% { transform: translateY(0px) rotate(0deg); }
+  25% { transform: translateY(-8px) rotate(90deg); }
+  50% { transform: translateY(-4px) rotate(180deg); }
+  75% { transform: translateY(-12px) rotate(270deg); }
+}
+
+@keyframes luxury-pulse {
+  0%, 100% { transform: scale(1); opacity: 0.6; }
+  50% { transform: scale(1.1); opacity: 0.8; }
+}
+
+@keyframes luxury-pulse-delay {
+  0%, 100% { transform: scale(1); opacity: 0.5; }
+  50% { transform: scale(1.05); opacity: 0.9; }
+}
+
+@keyframes luxury-spin-slow {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+@keyframes luxury-spin-reverse {
+  0% { transform: rotate(360deg); }
+  100% { transform: rotate(0deg); }
+}
+
+@keyframes luxury-slide {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(40px); }
+}
+
+@keyframes luxury-glow {
+  0%, 100% { opacity: 0.3; }
+  50% { opacity: 0.8; }
+}
+
+@keyframes luxury-shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+@keyframes luxury-counter {
+  from { opacity: 0.7; }
+  to { opacity: 1; }
+}
+
+/* Reveal Animations */
+@keyframes luxury-fade-in {
+  from { opacity: 0; transform: translateY(30px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes luxury-title-reveal {
+  from { opacity: 0; transform: translateY(50px) scale(0.9); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes luxury-subtitle-reveal {
+  from { opacity: 0; transform: translateY(30px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes luxury-description-reveal {
+  from { opacity: 0; transform: translateY(40px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes luxury-cta-reveal {
+  from { opacity: 0; transform: translateY(50px) scale(0.95); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+
+
+@keyframes luxury-glass-appear {
+  from { opacity: 0; transform: translateY(40px) scale(0.95); backdrop-filter: blur(0px); }
+  to { opacity: 1; transform: translateY(0) scale(1); backdrop-filter: blur(12px); }
+}
+
+/* Chart Animation */
+@keyframes luxury-chart-0 { 0%, 100% { height: 20%; } 50% { height: 60%; } }
+@keyframes luxury-chart-1 { 0%, 100% { height: 40%; } 50% { height: 80%; } }
+@keyframes luxury-chart-2 { 0%, 100% { height: 60%; } 50% { height: 30%; } }
+@keyframes luxury-chart-3 { 0%, 100% { height: 30%; } 50% { height: 70%; } }
+@keyframes luxury-chart-4 { 0%, 100% { height: 50%; } 50% { height: 90%; } }
+@keyframes luxury-chart-5 { 0%, 100% { height: 70%; } 50% { height: 40%; } }
+@keyframes luxury-chart-6 { 0%, 100% { height: 35%; } 50% { height: 85%; } }
+@keyframes luxury-chart-7 { 0%, 100% { height: 80%; } 50% { height: 20%; } }
+
+/* Animation Classes */
+.animate-luxury-float { animation: luxury-float 6s ease-in-out infinite; }
+.animate-luxury-pulse { animation: luxury-pulse 3s ease-in-out infinite; }
+.animate-luxury-pulse-delay { animation: luxury-pulse-delay 3s ease-in-out infinite 1.5s; }
+.animate-luxury-spin-slow { animation: luxury-spin-slow 20s linear infinite; }
+.animate-luxury-spin-reverse { animation: luxury-spin-reverse 25s linear infinite; }
+.animate-luxury-slide { animation: luxury-slide 30s ease-in-out infinite alternate; }
+.animate-luxury-glow { animation: luxury-glow 2s ease-in-out infinite; }
+.animate-luxury-shimmer { 
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+  background-size: 200% 100%;
+  animation: luxury-shimmer 2s infinite;
+}
+.animate-luxury-counter { animation: luxury-counter 1s ease-out; }
+.animate-luxury-fade-in { animation: luxury-fade-in 1s ease-out; }
+.animate-luxury-title-reveal { animation: luxury-title-reveal 1.2s ease-out; }
+.animate-luxury-subtitle-reveal { animation: luxury-subtitle-reveal 1s ease-out 0.3s both; }
+.animate-luxury-description-reveal { animation: luxury-description-reveal 1s ease-out 0.6s both; }
+.animate-luxury-cta-reveal { animation: luxury-cta-reveal 1s ease-out 0.9s both; }
+
+.animate-luxury-glass-appear { animation: luxury-glass-appear 1s ease-out; }
+
+.animate-luxury-chart-0 { animation: luxury-chart-0 3s ease-in-out infinite; }
+.animate-luxury-chart-1 { animation: luxury-chart-1 3s ease-in-out infinite 0.2s; }
+.animate-luxury-chart-2 { animation: luxury-chart-2 3s ease-in-out infinite 0.4s; }
+.animate-luxury-chart-3 { animation: luxury-chart-3 3s ease-in-out infinite 0.6s; }
+.animate-luxury-chart-4 { animation: luxury-chart-4 3s ease-in-out infinite 0.8s; }
+.animate-luxury-chart-5 { animation: luxury-chart-5 3s ease-in-out infinite 1s; }
+.animate-luxury-chart-6 { animation: luxury-chart-6 3s ease-in-out infinite 1.2s; }
+.animate-luxury-chart-7 { animation: luxury-chart-7 3s ease-in-out infinite 1.4s; }
 
 :root {
   /* Base colors */
@@ -80,17 +202,12 @@
   --foreground: #171717;
 }
 
-/* Marquee-like rail for home product slider */
-@keyframes rail-scroll {
-  0% { transform: translateX(0); }
-  100% { transform: translateX(-50%); }
-}
-.animate-rail {
-  width: 200%;
-  animation: rail-scroll 30s linear infinite;
-}
+/* Mobile responsive timing for rail animation */
 @media (max-width: 640px) { /* mobile */
-  .animate-rail { animation-duration: 45s; }
+  .animate-rail { 
+    animation-duration: 80s; /* کندتر برای موبایل */
+    gap: 0.5rem; /* فاصله کمتر در موبایل */
+  }
 }
 
 /* Glass & glow helpers */

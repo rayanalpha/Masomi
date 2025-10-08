@@ -1,5 +1,6 @@
-import { fetchProducts } from "@/lib/server-data";
+import { fetchProducts, fetchCategories } from "@/lib/server-data";
 import CatalogCard from "@/components/catalog/CatalogCard";
+import CategoryFilter from "@/components/catalog/CategoryFilter";
 import { Suspense } from "react";
 
 // Disable caching to ensure fresh data on each request
@@ -10,17 +11,22 @@ export default async function CatalogPage({ searchParams }: { searchParams?: Pro
   const params = (await searchParams) ?? {};
   const category = params.category;
   
-  // Use the serverless-safe data fetching utility
-  const products = await fetchProducts({
-    category,
-    status: 'PUBLISHED',
-    visibility: 'PUBLIC',
-    take: 60
-  });
+  // Fetch both products and categories
+  const [products, categories] = await Promise.all([
+    fetchProducts({
+      category,
+      status: 'PUBLISHED',
+      visibility: 'PUBLIC',
+      take: 60
+    }),
+    fetchCategories()
+  ]);
 
   return (
     <div className="container py-10" id="search">
-      <h1 className="lux-h1 mb-6 text-gold-gradient">کاتالوگ</h1>
+      <h1 className="lux-h1 mb-8 text-gold-gradient">کاتالوگ</h1>
+      
+      <CategoryFilter categories={categories} />
 
       {products.length === 0 ? (
         <div className="text-center py-12">
