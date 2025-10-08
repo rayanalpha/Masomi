@@ -3,6 +3,7 @@ import "./globals.css";
 import { Navbar } from "@/components/shared/Navbar";
 import { Footer } from "@/components/shared/Footer";
 import { SmoothScrollProvider } from "@/components/providers/SmoothScroll";
+import AppWithSplash from "@/components/layout/AppWithSplash";
 
 const vazirmatn = Vazirmatn({
   variable: "--font-vazirmatn",
@@ -24,16 +25,18 @@ export default function RootLayout({
   return (
     <html lang="fa" dir="rtl" suppressHydrationWarning>
       <body className={`${vazirmatn.variable} antialiased bg-background text-foreground`}>
-        {/* Smooth scroll on client only */}
-        <SmoothScrollProvider />
-        <Navbar />
-        <PageTransition>
-          <main className="pb-20 md:pb-0">{children}</main>
-        </PageTransition>
-        <Footer />
-        {/* Overlays & Mobile Nav */}
-        <SearchOverlay />
-        <BottomNav />
+        <AppWithSplash>
+          {/* Smooth scroll on client only */}
+          <SmoothScrollProvider />
+          <Navbar />
+          <PageTransition>
+            <main className="pb-20 md:pb-0">{children}</main>
+          </PageTransition>
+          <Footer />
+          {/* Overlays & Mobile Nav */}
+          <SearchOverlay />
+          <BottomNav />
+        </AppWithSplash>
       </body>
     </html>
   );
